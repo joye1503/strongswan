@@ -1002,6 +1002,33 @@ METHOD(bus_t, handle_vips, void,
 	this->mutex->unlock(this->mutex);
 }
 
+METHOD(bus_t, handle_address_change, void,
+	private_bus_t *this, host_t *address, bool appeared)
+{
+	enumerator_t *enumerator;
+	entry_t *entry;
+	bool keep;
+
+	this->mutex->lock(this->mutex);
+	enumerator = this->listeners->create_enumerator(this->listeners);
+	while (enumerator->enumerate(enumerator, &entry))
+	{
+		if (entry->calling || !entry->listener->handle_address_change)
+		{
+			continue;
+		}
+		entry->calling++;
+		keep = entry->listener->handle_address_change(entry->listener, address, appeared);
+		entry->calling--;
+		if (!keep)
+		{
+			unregister_listener(this, entry, enumerator);
+		}
+	}
+	enumerator->destroy(enumerator);
+	this->mutex->unlock(this->mutex);
+}
+
 /**
  * Credential manager hook function to forward bus alerts
  */
