@@ -2,7 +2,8 @@
  * Copyright (C) 2011-2015 Tobias Brunner
  * Copyright (C) 2009 Martin Willi
  * Hochschule fuer Technik Rapperswil
- *
+ * Copyright (C) 2016 Noel Kuntze
+ * 
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
  * Free Software Foundation; either version 2 of the License, or (at your
@@ -257,6 +258,19 @@ struct listener_t {
 	 * @return			TRUE to stay registered, FALSE to unregister
 	 */
 	bool (*handle_vips)(listener_t *this, ike_sa_t *ike_sa, bool handle);
+
+        /**
+         * IP address change hook
+         *
+         * This hook gets invoked when the network plugin detects a change in the
+         * available IP addresses.
+         *
+         * @param ip_address    A host_t object that encapsulates the IP address.
+         * @param appeared      TRUE if it appeared, FALSE if it disappeared
+         *                          from an interface.
+         * @return              TRUE to stay registered, FALSE to unregister
+         */
+        bool (*handle_address_change)(listener_t *this, host_t *address, bool appeared);
 };
 
 #endif /** LISTENER_H_ @}*/
