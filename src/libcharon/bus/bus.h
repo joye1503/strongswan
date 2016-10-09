@@ -465,7 +465,7 @@ struct bus_t {
          * @param appeared      TRUE if it appeared, FALSE if it disappeared
          *                          from an interface.
          */
-        bool (*handle_address_change)(listener_t *this, host_t *address, bool appeared);
+        bool (*handle_address_change)(bus_t *this, host_t *address, bool appeared);
 
 	/**
 	 * Destroy the event bus.
