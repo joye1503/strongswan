@@ -205,6 +205,7 @@ static void update_addrs(private_kernel_iph_net_t *this, iface_t *entry,
 			{
 				DBG1(DBG_KNL, "%H appeared on interface %u '%s'",
 					 host, entry->ifindex, entry->ifdesc);
+                                charon->bus->handle_address_change(charon->bus, host, TRUE);
 				changes = TRUE;
 			}
 		}
@@ -217,6 +218,7 @@ static void update_addrs(private_kernel_iph_net_t *this, iface_t *entry,
 			DBG1(DBG_KNL, "%H disappeared from interface %u '%s'",
 				 old, entry->ifindex, entry->ifdesc);
 			changes = TRUE;
+                        charon->bus->handle_address_change(charon->bus, host, FALSE);
 		}
 		old->destroy(old);
 	}
