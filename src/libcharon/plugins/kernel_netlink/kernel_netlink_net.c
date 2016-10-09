@@ -1156,6 +1156,7 @@ static void process_addr(private_kernel_netlink_net_t *this,
 					changed = TRUE;
 					DBG1(DBG_KNL, "%H disappeared from %s", host,
 						 iface->ifname);
+                                        charon->bus->handle_address_change(charon->bus, host, FALSE);
 				}
 				addr_map_entry_remove(this->addrs, addr, iface);
 				addr_entry_destroy(addr);
@@ -1178,6 +1179,7 @@ static void process_addr(private_kernel_netlink_net_t *this,
 				if (event && iface->usable)
 				{
 					DBG1(DBG_KNL, "%H appeared on %s", host, iface->ifname);
+                                        charon->bus->handle_address_change(charon->bus, host, TRUE);
 				}
 			}
 		}
