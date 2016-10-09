@@ -1109,6 +1109,7 @@ bus_t *bus_create()
 			.narrow = _narrow,
 			.assign_vips = _assign_vips,
 			.handle_vips = _handle_vips,
+                        .handle_address_change = _handle_address_change,
 			.destroy = _destroy,
 		},
 		.listeners = linked_list_create(),
