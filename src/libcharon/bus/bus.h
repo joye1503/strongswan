@@ -2,6 +2,7 @@
  * Copyright (C) 2012-2015 Tobias Brunner
  * Copyright (C) 2006-2009 Martin Willi
  * Hochschule fuer Technik Rapperswil
+ * Copyright (C) 2016 Noel Kuntze
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -453,6 +454,18 @@ struct bus_t {
 	 * @param assign	TRUE after installing attributes, FALSE on release
 	 */
 	void (*handle_vips)(bus_t *this, ike_sa_t *ike_sa, bool handle);
+
+        /**
+         * IP address change hook
+         *
+         * This hook gets invoked when the network plugin detects a change in the
+         * available IP addresses.
+         *
+         * @param ip_address    A host_t object that encapsulates the IP address.
+         * @param appeared      TRUE if it appeared, FALSE if it disappeared
+         *                          from an interface.
+         */
+        bool (*handle_address_change)(listener_t *this, host_t *address, bool appeared);
 
 	/**
 	 * Destroy the event bus.
