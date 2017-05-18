@@ -271,6 +271,15 @@ METHOD(plugin_t, static_destroy, void,
 }
 
 /**
+ * Check if the plugin's version is the same as the library's version
+ */
+
+static bool check_version(plugin_t *plugin)
+{
+	return strcmp(lib->version, plugin->version);
+}
+
+/**
  * Create a wrapper around static plugin features.
  */
 static plugin_t *static_features_create(const char *name,
@@ -339,6 +348,15 @@ static status_t create_plugin(private_plugin_loader_t *this, void *handle,
 			 create);
 		return FAILED;
 	}
+
+	if (check_version(plugin))
+	{
+		DBG2(DBG_LIB, "plugin '%s': loading rejected, plugin version '%s' differs"
+			"from library version '%s'", name, plugin->version, lib->version);
+		plugin->destroy(plugin);
+		return FAILED;
+	}
+
 	INIT(*entry,
 		.plugin = plugin,
 		.critical = critical,

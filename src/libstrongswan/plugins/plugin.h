@@ -60,6 +60,11 @@ struct plugin_t {
 	 * Destroy a plugin instance.
 	 */
 	void (*destroy)(plugin_t *this);
+	
+	/**
+	 * The strongSwan version number this plugin was built with.
+	 */
+	const char *version;
 };
 
 
