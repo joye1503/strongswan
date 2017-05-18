@@ -195,7 +195,6 @@ void library_deinit()
 
 	free(this->public.conf);
 	free((void*)this->public.ns);
-	free(this->public.version);
 	free(this);
 	lib = NULL;
 }
