@@ -195,6 +195,7 @@ void library_deinit()
 
 	free(this->public.conf);
 	free((void*)this->public.ns);
+	free(this->public.version);
 	free(this);
 	lib = NULL;
 }
@@ -303,6 +304,7 @@ bool library_init(char *settings, const char *namespace)
 		.public = {
 			.get = _get,
 			.set = _set,
+			.version = strdup(PACKAGE_VERSION),
 			.ns = strdup(namespace ?: "libstrongswan"),
 			.conf = strdupnull(settings ?: (getenv("STRONGSWAN_CONF") ?: STRONGSWAN_CONF)),
 		},

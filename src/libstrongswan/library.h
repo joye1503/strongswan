@@ -155,6 +155,11 @@ struct library_t {
 	char *conf;
 
 	/**
+	 * The library version
+	 */
+	const char *version;
+	
+	/**
 	 * Printf hook registering facility
 	 */
 	printf_hook_t *printf_hook;
