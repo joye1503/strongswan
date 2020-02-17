@@ -26,7 +26,7 @@
 #if !TARGET_OS_OSX
 #define TUN_DEVICE_NOT_SUPPORTED
 #endif
-#elif !defined(__linux__) && !defined(HAVE_NET_IF_TUN_H)
+#elif !defined(__linux__) && !defined(HAVE_NET_IF_TUN_H) && !defined(WINTUN)
 #define TUN_DEVICE_NOT_SUPPORTED
 #endif
 
@@ -62,6 +62,12 @@ tun_device_t *tun_device_create(const char *name_tmpl)
 #include <net/if_tun.h>
 #include <net/if_var.h>
 #include <netinet/in_var.h>
+#elif __WIN32__
+#include <ntifs.h>
+#include <wdm.h>
+#include <wdmsec.h>
+#include <ndis.h>
+#include <ntstrsafe.h>
 #else
 #include <net/if_tun.h>
 #endif
