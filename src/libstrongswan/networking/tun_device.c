@@ -42,15 +42,21 @@ tun_device_t *tun_device_create(const char *name_tmpl)
 
 #include <errno.h>
 #include <fcntl.h>
-#include <netinet/in.h>
 #include <string.h>
-#include <sys/ioctl.h>
 #include <sys/types.h>
-#include <sys/socket.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#ifdef __WIN32__
+#include <ntifs.h>
+#include <wdm.h>
+#include <wdmsec.h>
+#include <ndis.h>
+#include <ntstrsafe.h>
+#else
+#include <sys/ioctl.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
 #include <net/if.h>
-
 #ifdef __APPLE__
 #include <net/if_utun.h>
 #include <netinet/in_var.h>
@@ -62,14 +68,9 @@ tun_device_t *tun_device_create(const char *name_tmpl)
 #include <net/if_tun.h>
 #include <net/if_var.h>
 #include <netinet/in_var.h>
-#elif __WIN32__
-#include <ntifs.h>
-#include <wdm.h>
-#include <wdmsec.h>
-#include <ndis.h>
-#include <ntstrsafe.h>
 #else
 #include <net/if_tun.h>
+#endif
 #endif
 
 #define TUN_DEFAULT_MTU 1500
