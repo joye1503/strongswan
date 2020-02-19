@@ -43,7 +43,16 @@ typedef struct _TUN_REGISTER_RINGS {
     /* Receive ring is for data from application to driver */
 } TUN_REGISTER_RINGS;
 
-#define TUN_RING_SIZE(TUN_RING) {sizeof(TUN_RING) + capacity + 0x10000};
+typedef struct _TUN_PACKET {
+    ULONG Size;
+    UCHAR Data[];
+} TUN_PACKET;
+/* capacity must be a power of two and between 128 kiB and 64 MiB */
+#define TUN_RING_CAPACITY = 64*1024*1024;
+#define TUN_RING_SIZE(TUN_RING, capacity) {sizeof(TUN_RING) + capacity + 0x10000};
+#define TUN_MAX_IP_PACKET_SIZE 0xFFFF
+#define PNP_INSTANCE_ID 0x124532
+#define TUN_IOCTL_REGISTER_RINGS 0xca6ce5c0
 #endif
 typedef struct tun_device_t tun_device_t;
 
