@@ -68,7 +68,7 @@ tun_device_t *tun_device_create(const char *name_tmpl)
 #else
 #include <net/if_tun.h>
 #endif
-#endif
+#endif /* __WIN32__ */
 
 #define TUN_DEFAULT_MTU 1500
 
