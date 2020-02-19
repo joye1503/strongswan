@@ -68,7 +68,7 @@ tun_device_t *tun_device_create(const char *name_tmpl)
 #else
 #include <net/if_tun.h>
 #endif
-#endif /* __WIN32__ */
+#endif /* !__WIN32__ */
 
 #define TUN_DEFAULT_MTU 1500
 
@@ -309,7 +309,7 @@ METHOD(tun_device_t, get_mtu, int,
 	}
 	return this->mtu;
 }
-#endif /* __WIN32__ */
+#endif /* !__WIN32__ */
 
 METHOD(tun_device_t, set_address, bool,
 	private_tun_device_t *this, host_t *addr, uint8_t netmask)
