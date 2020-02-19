@@ -47,11 +47,8 @@ tun_device_t *tun_device_create(const char *name_tmpl)
 #include <sys/stat.h>
 #include <unistd.h>
 #ifdef __WIN32__
-#include <ntifs.h>
-#include <wdm.h>
-#include <wdmsec.h>
-#include <ndis.h>
 #include <ntstrsafe.h>
+#define IFNAMSIZ 256
 #else
 #include <sys/ioctl.h>
 #include <netinet/in.h>
@@ -115,6 +112,9 @@ struct private_tun_device_t {
 	uint8_t netmask;
 };
 
+#ifdef __WIN32__
+
+#else
 /**
  * FreeBSD 10 deprecated the SIOCSIFADDR etc. commands.
  */
@@ -229,31 +229,8 @@ static bool set_address_impl(private_tun_device_t *this, host_t *addr,
 		return FALSE;
 	}
 	return TRUE;
-}
 
 #endif /* __FreeBSD__ */
-
-METHOD(tun_device_t, set_address, bool,
-	private_tun_device_t *this, host_t *addr, uint8_t netmask)
-{
-	if (!set_address_impl(this, addr, netmask))
-	{
-		return FALSE;
-	}
-	DESTROY_IF(this->address);
-	this->address = addr->clone(addr);
-	this->netmask = netmask;
-	return TRUE;
-}
-
-METHOD(tun_device_t, get_address, host_t*,
-	private_tun_device_t *this, uint8_t *netmask)
-{
-	if (netmask && this->address)
-	{
-		*netmask = this->netmask;
-	}
-	return this->address;
 }
 
 METHOD(tun_device_t, up, bool,
@@ -320,6 +297,30 @@ METHOD(tun_device_t, get_mtu, int,
 		this->mtu = ifr.ifr_mtu;
 	}
 	return this->mtu;
+}
+#endif /* __WIN32__ */
+
+METHOD(tun_device_t, set_address, bool,
+	private_tun_device_t *this, host_t *addr, uint8_t netmask)
+{
+	if (!set_address_impl(this, addr, netmask))
+	{
+		return FALSE;
+	}
+	DESTROY_IF(this->address);
+	this->address = addr->clone(addr);
+	this->netmask = netmask;
+	return TRUE;
+}
+
+METHOD(tun_device_t, get_address, host_t*,
+	private_tun_device_t *this, uint8_t *netmask)
+{
+	if (netmask && this->address)
+	{
+		*netmask = this->netmask;
+	}
+	return this->address;
 }
 
 METHOD(tun_device_t, get_name, char*,
@@ -420,7 +421,8 @@ METHOD(tun_device_t, destroy, void,
  */
 static bool init_tun(private_tun_device_t *this, const char *name_tmpl)
 {
-#ifdef __APPLE__
+#ifdef __WIN32__
+#elif defined(__APPLE__)
 
 	struct ctl_info info;
 	struct sockaddr_ctl addr;
@@ -541,7 +543,7 @@ static bool init_tun(private_tun_device_t *this, const char *name_tmpl)
 	}
 	return this->tunfd > 0;
 
-#endif /* !__APPLE__ */
+#endif /* !__WIN32__*/
 }
 
 /*
