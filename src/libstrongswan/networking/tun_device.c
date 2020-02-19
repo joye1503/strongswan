@@ -47,7 +47,10 @@ tun_device_t *tun_device_create(const char *name_tmpl)
 #include <sys/stat.h>
 #include <unistd.h>
 #ifdef __WIN32__
+#include <tchar.h>
+#include <cfgmgr32.h>
 #include <ntstrsafe.h>
+#include <ddk/ndisguid.h>
 #define IFNAMSIZ 256
 #else
 #include <sys/ioctl.h>
