@@ -342,7 +342,42 @@ METHOD(tun_device_t, get_name, char*,
 {
 	return this->if_name;
 }
+#endif /* !__WIN32__ */
+#ifdef __WIN32__
+METHOD(tun_device_t, get_handle, HANDLE,
+        private_tun_device_t *this)
+{
+        return this->tun_handle;
+}
 
+METHOD(tun_device_t, write_packet, bool,
+        private_tun_device_t *this, chunk_t packet)
+{
+        write_to_ring(this->rings->Receive.Ring, packet);
+        if (this->rings->Receive.Ring->Alertable) {
+            SetEvent(this->rings->Receive.TailMoved);
+        }
+        return TRUE;
+}
+METHOD(tun_device_t, read_packet, bool, 
+        private_tun_device_t *this, chunk_t *packet) {
+        TUN_PACKET *next = pop_from_ring(this->rings->Send.Ring);
+        if (!next) {
+            this->rings->Send.Ring->Alertable = TRUE;
+            next = pop_from_ring(this->rings->Send.Ring);
+            if (!next) {
+                WaitForSingleObject(this->rings->Send.TailMoved, INFINITE) {
+                    this->rings->send.Ring->Alertable = FALSE;
+                }
+                this->rings->Send.Ring->Alertable = FALSE,
+                        ResetEvent(this->rings->Send.TailMoved);
+            }
+        }
+        packet->len = next->Size;
+        packet->ptr = next->Data;
+        return TRUE;
+}
+#else
 METHOD(tun_device_t, get_fd, int,
 	private_tun_device_t *this)
 {
