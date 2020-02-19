@@ -25,6 +25,26 @@
 
 #include <networking/host.h>
 
+#ifdef __WIN32__
+typedef struct _TUN_RING {
+    volatile ULONG Head;
+    volatile ULONG Tail;
+    volatile LONG Alertable;
+    UCHAR Data[];
+} TUN_RING;
+
+typedef struct _TUN_REGISTER_RINGS {
+    struct {
+        ULONG RingSize;
+        TUN_RING *Ring;
+        HANDLE TailMoved;
+    } Send, Receive;
+    /* Send ring is for data from driver to application */
+    /* Receive ring is for data from application to driver */
+} TUN_REGISTER_RINGS;
+
+#define TUN_RING_SIZE(TUN_RING) {sizeof(TUN_RING) + capacity + 0x10000};
+#endif
 typedef struct tun_device_t tun_device_t;
 
 /**

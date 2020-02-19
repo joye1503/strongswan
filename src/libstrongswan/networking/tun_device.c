@@ -81,20 +81,31 @@ struct private_tun_device_t {
 	 */
 	tun_device_t public;
 
+#ifdef __WIN32__
+        /**
+         * The TUN device's HANDLE
+         */
+        HANDLE tun_handle;
+
+        /**
+         * The TUN device's rings
+         */
+        TUN_REGISTER_RINGS *rings;
+#else
 	/**
 	 * The TUN device's file descriptor
 	 */
 	int tunfd;
 
 	/**
-	 * Name of the TUN device
-	 */
-	char if_name[IFNAMSIZ];
-
-	/**
 	 * Socket used for ioctl() to set interface addr, ...
 	 */
 	int sock;
+#endif /* !__WIN32__ */
+	/**
+	 * Name of the TUN device
+	 */
+	char if_name[IFNAMSIZ];
 
 	/**
 	 * The current MTU
@@ -338,8 +349,9 @@ METHOD(tun_device_t, get_fd, int,
 METHOD(tun_device_t, write_packet, bool,
 	private_tun_device_t *this, chunk_t packet)
 {
-	ssize_t s;
-
+#ifdef __WIN32__
+#else
+        ssize_t s;
 #ifdef __APPLE__
 	/* UTUN's expect the packets to be prepended by a 32-bit protocol number
 	 * instead of parsing the packet again, we assume IPv4 for now */
@@ -385,6 +397,7 @@ METHOD(tun_device_t, read_packet, bool,
 #endif
 	*packet = chunk_clone(data);
 	return TRUE;
+#endif /* !__WIN32__ */
 }
 
 METHOD(tun_device_t, destroy, void,
@@ -422,6 +435,12 @@ METHOD(tun_device_t, destroy, void,
 static bool init_tun(private_tun_device_t *this, const char *name_tmpl)
 {
 #ifdef __WIN32__
+        /* WINTUN driver specific stuff */
+        /* Check if the TUN device already exists */
+        /* If it doesn't, create it */
+        /* Create structs for rings and the rings themselves */
+        /* Tell driver about the rings */
+        /* We're done now */
 #elif defined(__APPLE__)
 
 	struct ctl_info info;
