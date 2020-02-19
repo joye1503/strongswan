@@ -128,6 +128,39 @@ struct private_tun_device_t {
 
 #ifdef __WIN32__
 
+METHOD(tun_device_t, set_mtu, bool,
+	private_tun_device_t *this, int mtu)
+{
+	return TRUE;
+}
+
+METHOD(tun_device_t, get_mtu, int,
+	private_tun_device_t *this)
+{
+    return TUN_MAX_IP_PACKET_SIZE;
+}
+
+/* This is likely broken (!!!) */
+static bool write_to_ring(TUN_RING *ring, chunk_t packet) {
+        size_t next_pos = ring->Head + packet.len;
+        if (next_pos >= ring->Tail) {
+            next_pos = ring->Head;
+            if (next_pos + packet.len >= ring->Head) {
+                return FALSE;
+            }
+        } else if (ring->Head < ring->Tail ) {
+            return FALSE;
+        }
+        ring->Tail = next_pos;
+        
+        memcpy(next_pos, packet.ptr, packet.len);
+        return TRUE;
+}
+static bool pop_from_ring(TUN_RING *ring) {
+        /* Check if the head is at the tail */
+        /* Ring contains structs of ULONG len + ptr to data */
+        size_t next_pos = ring->Tail + (ULONG) *ring->Tail;
+}
 #else
 /**
  * FreeBSD 10 deprecated the SIOCSIFADDR etc. commands.
@@ -312,7 +345,7 @@ METHOD(tun_device_t, get_mtu, int,
 	}
 	return this->mtu;
 }
-#endif /* !__WIN32__ */
+
 
 METHOD(tun_device_t, set_address, bool,
 	private_tun_device_t *this, host_t *addr, uint8_t netmask)
@@ -387,8 +420,6 @@ METHOD(tun_device_t, get_fd, int,
 METHOD(tun_device_t, write_packet, bool,
 	private_tun_device_t *this, chunk_t packet)
 {
-#ifdef __WIN32__
-#else
         ssize_t s;
 #ifdef __APPLE__
 	/* UTUN's expect the packets to be prepended by a 32-bit protocol number
@@ -441,6 +472,12 @@ METHOD(tun_device_t, read_packet, bool,
 METHOD(tun_device_t, destroy, void,
 	private_tun_device_t *this)
 {
+#ifdef __WIN32
+    /* https://docs.microsoft.com/en-us/windows/win32/api/setupapi/nf-setupapi-setupdiremovedevice */
+    if (this->tun_handle) {
+        /* dealloc tun device */
+    }
+#else
 	if (this->tunfd > 0)
 	{
 		close(this->tunfd);
@@ -463,6 +500,7 @@ METHOD(tun_device_t, destroy, void,
 	{
 		close(this->sock);
 	}
+#endif /* !__WIN32__ */
 	DESTROY_IF(this->address);
 	free(this);
 }
@@ -475,9 +513,46 @@ static bool init_tun(private_tun_device_t *this, const char *name_tmpl)
 #ifdef __WIN32__
         /* WINTUN driver specific stuff */
         /* Check if the TUN device already exists */
-        /* If it doesn't, create it */
+        TCHAR *InterfaceList = NULL;
+        DWORD RequiredBytes = 0;
+        while (TRUE) {
+            DESTROY_IF(InterfaceList);
+            if (CM_Get_Device_Interface_List_Size(&RequiredBytes, (LPGUID)&GUID_DEVINTERFACE_NET,
+                InstanceId, CM_GET_DEVICE_INTERFACE_LIST_PRESENT) != CR_SUCCESS)
+                return FALSE;
+            InterfaceList = calloc(sizeof(*InterfaceList), RequiredBytes);
+            if (!InterfaceList)
+                return FALSE;
+            CONFIGRET Ret = CM_Get_Device_Interface_List((LPGUID)&GUID_DEVINTERFACE_NET, PNP_INSTANCE_ID,
+                            InterfaceList, RequiredBytes, CM_GET_DEVICE_INTERFACE_LIST_PRESENT);
+            if (Ret == CR_SUCCESS)
+                break;
+            if (Ret != CR_BUFFER_SMALL) {
+                free(InterfaceList);
+                return FALSE;
+            }        
+        }
+         
+
+        /* If the TUN device doesn't exist, create it */
+        /* Open the handle by using the InterfaceList */
+        this->tun_handle = CreateFile(InterfaceList, GENERIC_READ | GENERIC_WRITE,
+                                         FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                                         NULL, OPEN_EXISTING, 0, NULL);
+        free(InterfaceList);
         /* Create structs for rings and the rings themselves */
+        this->rings = malloc(sizeof(TUN_REGISTER_RINGS));
+        this->rings->Receive.Ring = malloc(TUN_RING_SIZE(this->rings->Receive, TUN_RING_CAPACITY));
+        this->rings->Send.Ring = malloc(TUN_RING_SIZE(this->rings->Send, TUN_RING_CAPACITY));
         /* Tell driver about the rings */
+        DeviceIoControl(this->tun_handle,
+            TUN_IOCTL_REGISTER_RINGS,
+            this->rings->Receive,
+            TUN_RING_SIZE(this->rings->Receive, TUN_RING_CAPACITY,
+            this->rings->Send,
+            TUN_RING_SIZE(this->rings->Send, TUN_RING_CAPACITY,
+
+            );
         /* We're done now */
 #elif defined(__APPLE__)
 
@@ -633,7 +708,8 @@ tun_device_t *tun_device_create(const char *name_tmpl)
 		return NULL;
 	}
 	DBG1(DBG_LIB, "created TUN device: %s", this->if_name);
-
+#ifdef __WIN32__
+#else
 	this->sock = socket(AF_INET, SOCK_DGRAM, 0);
 	if (this->sock < 0)
 	{
@@ -641,6 +717,7 @@ tun_device_t *tun_device_create(const char *name_tmpl)
 		destroy(this);
 		return NULL;
 	}
+#endif /* !__WIN32__ */
 	return &this->public;
 }
 
