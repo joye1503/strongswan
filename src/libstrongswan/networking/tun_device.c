@@ -137,25 +137,72 @@ METHOD(tun_device_t, set_mtu, bool,
 METHOD(tun_device_t, get_mtu, int,
 	private_tun_device_t *this)
 {
-    return TUN_MAX_IP_PACKET_SIZE;
+        return TUN_MAX_IP_PACKET_SIZE;
+}
+
+static inline bool ring_over_capacity(TUN_RING *ring)
+{
+    return ((ring->Head >= TUN_RING_CAPACITY) || (ring->Tail >= TUN_RING_CAPACITY));
 }
 
 /* This is likely broken (!!!) */
 static bool write_to_ring(TUN_RING *ring, chunk_t packet) {
-        /* Ring is empty if head == tail */    
+        /* Check if packet fits */
+    TUN_PACKET *tun_packet;
+    /* TODO: if ring is full or over capacity, wait until wintun driver sends event */
+    if (ring_over_capacity(ring))
+    {
+        DBG1(DBG_LIB, "RING is over capacity!");
+    }
+    uint64_t aligned_packet_size = TUN_PACKET_ALIGN(packet.len);
+    uint64_t buffer_space = TUN_WRAP_POSITION(ring->Head - ring->Tail - TUN_PACKET_ALIGNMENT, TUN_RING_CAPACITY);
+    if (aligned_packet_size > buffer_space)
+    {
+        DBG1(DBG_LIB, "RING is full!");
+    }
+    
+    /* copy packet size and data into ring */
+    tun_packet = (TUN_PACKET *)&(ring->Data[ring->Tail]);
+    tun_packet->Size = packet.len;
+    memcpy(tun_packet->Data, packet.ptr, packet.len);
+    
+    /* move ring tail */
+    ring->Tail = TUN_WRAP_POSITION(ring->Tail + aligned_packet_size, TUN_RING_CAPACITY);
+    return TRUE;
 }
 
 static chunk_t *pop_from_ring(TUN_RING *ring)
 {
+        /* TODO: If ring is over capacity wait until event is sent */
+        chunk_t *chunk_packet;
         /* Ring is empty if head == tail */
-    if (ring->Head >= TUN_RING_CAPACITY || ring->Tail >= TUN_RING_CAPACITY) {
-        DBG0(DBG_LIB, "RING is over capacity!");
-        return FALSE;
-    }
-    uint32_t length = TUN_WRAP_POSITION(ring->Tail - ring->Head,
-        TUN_RING_SIZE(ring, TUN_RING_CAPACITY));
-    
-    
+        if (ring_over_capacity(ring)) {
+            DBG0(DBG_LIB, "RING is over capacity!");
+            return FALSE;
+        }
+        uint32_t length = TUN_WRAP_POSITION(ring->Tail - ring->Head,
+            TUN_RING_SIZE(ring, TUN_RING_CAPACITY));
+        if (length <sizeof(uint32_t))
+        {
+            DBG0(DBG_LIB, "RING contains incomplete packet header!");
+            /* Need to restart the driver here */
+        }
+        TUN_PACKET *packet = (TUN_PACKET *)&(ring->Data[ring->Head]);
+        if (packet->Size > TUN_MAX_IP_PACKET_SIZE)
+        {
+            DBG0(DBG_LIB, "RING contains packet larger than TUN_MAX_IP_PACKET_SIZE!");
+        }
+
+        size_t aligned_packet_size = TUN_PACKET_ALIGN(sizeof(uint32_t) + packet->Size);
+        if (aligned_packet_size > length)
+        {
+            DBG0(DBG_LIB, "Incomplete packet in ring!");
+        }
+
+        chunk_packet = malloc(sizeof(chunk_t));
+        chunk_packet->len = packet->Size;
+        chunk_packet->ptr = packet->Data;
+        return chunk_packet;
 }
 #else
 /**
@@ -528,30 +575,28 @@ METHOD(tun_device_t, destroy, void,
 /**
  * Destroy the tun device
  */
-static bool destroy_wintun() {
+static bool destroy_wintun(TCHAR *GUID) {
     return TRUE;
 }
 /**
  * Create the tun device and configure it as stored in the registry 
  */
-static bool create_wintun() {
+static bool create_wintun(TCHAR *GUID) {
     return TRUE;
 }
 
 /**
  * Configure the tun device as stored in the registry
  */
-static bool config_wintun() {
+static bool config_wintun(TCHAR *GUID) {
     return TRUE;
 }
 /**
  * Initialize the tun device
  */
-static bool init_tun(private_tun_device_t *this, const char *name_tmpl)
+
+static bool search_interfaces(TCHAR *GUID)
 {
-#ifdef __WIN32__
-        /* WINTUN driver specific stuff */
-        /* Check if the TUN device already exists */
         TCHAR *InterfaceList = NULL;
         DWORD RequiredBytes = 0;
         while (TRUE) {
@@ -560,28 +605,41 @@ static bool init_tun(private_tun_device_t *this, const char *name_tmpl)
                 InterfaceList = NULL;
             }
             if (CM_Get_Device_Interface_List_Size(&RequiredBytes, (LPGUID)&GUID_DEVINTERFACE_NET,
-                PNP_INSTANCE_ID, CM_GET_DEVICE_INTERFACE_LIST_PRESENT) != CR_SUCCESS)
-                return FALSE;
+                GUID, CM_GET_DEVICE_INTERFACE_LIST_PRESENT) != CR_SUCCESS)
+                return NULL;
             InterfaceList = calloc(sizeof(*InterfaceList), RequiredBytes);
             if (!InterfaceList)
-                return FALSE;
-            CONFIGRET Ret = CM_Get_Device_Interface_List((LPGUID)&GUID_DEVINTERFACE_NET, PNP_INSTANCE_ID,
+                return NULL;
+            CONFIGRET Ret = CM_Get_Device_Interface_List((LPGUID)&GUID_DEVINTERFACE_NET, GUID,
                             InterfaceList, RequiredBytes, CM_GET_DEVICE_INTERFACE_LIST_PRESENT);
             if (Ret == CR_SUCCESS)
                 break;
             if (Ret != CR_BUFFER_SMALL) {
                 free(InterfaceList);
-                return FALSE;
+                return NULL;
             }
         }
+        return InterfaceList;
+}
+static bool init_tun(private_tun_device_t *this, const char *name_tmpl)
+{
+#ifdef __WIN32__
+        /* WINTUN driver specific stuff */
+        /* Check if the TUN device already exists */
+
         /* If the TUN device already exists, delete it */
         /* If the TUN device doesn't exist, create it */
-        
+        TCHAR *InterfaceList = search_interfaces(PNP_INSTANCE_ID);
+        if (InterfaceList)
+        {
+            destroy_wintun(PNP_INSTANCE_ID);
+        }
+        InterfaceList = create_wintun(PNP_INSTANCE_ID);
+        config_wintun(PNP_INSTANCE_ID);
         /* Open the handle by using the InterfaceList */
         this->tun_handle = CreateFile(InterfaceList, GENERIC_READ | GENERIC_WRITE,
                                          FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
                                          NULL, OPEN_EXISTING, 0, NULL);
-        free(InterfaceList);
         /* Create structs for rings and the rings themselves */
         this->rings = calloc(sizeof(TUN_REGISTER_RINGS), 1);
         this->rings->Send.Ring = calloc(sizeof(TUN_RING), 1);
