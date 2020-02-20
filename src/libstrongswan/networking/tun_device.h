@@ -28,14 +28,17 @@
 #ifdef __WIN32__
 /* capacity must be a power of two and between 128 kiB and 64 MiB */
 #define TUN_PACKET_ALIGNMENT 4
-#define TUN_RING_CAPACITY 64*1024*1024
+#define TUN_RING_CAPACITY (64*1024*1024)
 #define TUN_RING_SIZE(TUN_RING, capacity) (sizeof(TUN_RING) + capacity + 0x10000)
 #define TUN_MAX_IP_PACKET_SIZE 0xFFFF
 #define PNP_INSTANCE_ID "{abcde}"
+#define WINTUN_COMPONENT_ID "wintun"
+/* GUIDs from openvpn tun.c code */
+const static GUID GUID_DEVCLASS_NET = { 0x4d36e972L, 0xe325, 0x11ce, { 0xbf, 0xc1, 0x08, 0x00, 0x2b, 0xe1, 0x03, 0x18 } };
 #define TUN_IOCTL_REGISTER_RINGS 0xca6ce5c0
 #define TUN_PACKET_TRAILING_SIZE (sizeof(uint32_t) + ((TUN_MAX_IP_PACKET_SIZE + \
     (TUN_PACKET_ALIGNMENT - 1)) &~(TUN_PACKET_ALIGNMENT - 1)) - TUN_PACKET_ALIGNMENT)
-#define TUN_WRAP_POSITION(position, size) (position & (size - 1))
+#define TUN_WRAP_POSITION(position, size) ({position & (size - 1);})
 #define TUN_PACKET_ALIGN(size) ((size + (TUN_PACKET_ALIGNMENT - 1)) &~(TUN_PACKET_ALIGNMENT - 1))
 typedef struct _TUN_RING {
     volatile ULONG Head;
