@@ -142,24 +142,20 @@ METHOD(tun_device_t, get_mtu, int,
 
 /* This is likely broken (!!!) */
 static bool write_to_ring(TUN_RING *ring, chunk_t packet) {
-        size_t next_pos = ring->Head + packet.len;
-        if (next_pos >= ring->Tail) {
-            next_pos = ring->Head;
-            if (next_pos + packet.len >= ring->Head) {
-                return FALSE;
-            }
-        } else if (ring->Head < ring->Tail ) {
-            return FALSE;
-        }
-        ring->Tail = next_pos;
-        
-        memcpy(next_pos, packet.ptr, packet.len);
-        return TRUE;
+        /* Ring is empty if head == tail */    
 }
-static bool pop_from_ring(TUN_RING *ring) {
-        /* Check if the head is at the tail */
-        /* Ring contains structs of ULONG len + ptr to data */
-        size_t next_pos = ring->Tail + (ULONG) *ring->Tail;
+
+static chunk_t *pop_from_ring(TUN_RING *ring)
+{
+        /* Ring is empty if head == tail */
+    if (ring->Head >= TUN_RING_CAPACITY || ring->Tail >= TUN_RING_CAPACITY) {
+        DBG0(DBG_LIB, "RING is over capacity!");
+        return FALSE;
+    }
+    uint32_t length = TUN_WRAP_POSITION(ring->Tail - ring->Head,
+        TUN_RING_SIZE(ring, TUN_RING_CAPACITY));
+    
+    
 }
 #else
 /**
@@ -393,22 +389,46 @@ METHOD(tun_device_t, write_packet, bool,
         return TRUE;
 }
 METHOD(tun_device_t, read_packet, bool, 
-        private_tun_device_t *this, chunk_t *packet) {
-        TUN_PACKET *next = pop_from_ring(this->rings->Send.Ring);
+        private_tun_device_t *this, chunk_t *packet)
+{
+        chunk_t *next = pop_from_ring(this->rings->Send.Ring);
         if (!next) {
-            this->rings->Send.Ring->Alertable = TRUE;
+                this->rings->Send.Ring->Alertable = TRUE;
             next = pop_from_ring(this->rings->Send.Ring);
             if (!next) {
-                WaitForSingleObject(this->rings->Send.TailMoved, INFINITE) {
-                    this->rings->send.Ring->Alertable = FALSE;
+            WaitForSingleObject(this->rings->Send.TailMoved, INFINITE);
+                    this->rings->Send.Ring->Alertable = FALSE;
                 }
                 this->rings->Send.Ring->Alertable = FALSE,
                         ResetEvent(this->rings->Send.TailMoved);
-            }
         }
-        packet->len = next->Size;
-        packet->ptr = next->Data;
+        packet = next;
         return TRUE;
+}
+
+/* Bogus implementation because nobody should use this */
+METHOD(tun_device_t, get_name, char*,
+        private_tun_device_t *this)
+{
+        return this->if_name;
+}
+
+/* Bogus implementation because nobody should use this */
+METHOD(tun_device_t, set_address, bool,
+        private_tun_device_t *this,  host_t *addr, uint8_t netmask)
+{
+        return TRUE;
+}
+/* Bogus implementation because nobody should use this */
+METHOD(tun_device_t, get_address, host_t*,
+        private_tun_device_t *this, uint8_t *netmask)
+{
+    return NULL;
+}
+METHOD(tun_device_t, up, bool,
+        private_tun_device_t *this)
+{
+    return TRUE;
 }
 #else
 METHOD(tun_device_t, get_fd, int,
@@ -466,8 +486,8 @@ METHOD(tun_device_t, read_packet, bool,
 #endif
 	*packet = chunk_clone(data);
 	return TRUE;
-#endif /* !__WIN32__ */
 }
+#endif /* !__WIN32__ */
 
 METHOD(tun_device_t, destroy, void,
 	private_tun_device_t *this)
@@ -506,6 +526,25 @@ METHOD(tun_device_t, destroy, void,
 }
 
 /**
+ * Destroy the tun device
+ */
+static bool destroy_wintun() {
+    return TRUE;
+}
+/**
+ * Create the tun device and configure it as stored in the registry 
+ */
+static bool create_wintun() {
+    return TRUE;
+}
+
+/**
+ * Configure the tun device as stored in the registry
+ */
+static bool config_wintun() {
+    return TRUE;
+}
+/**
  * Initialize the tun device
  */
 static bool init_tun(private_tun_device_t *this, const char *name_tmpl)
@@ -516,9 +555,12 @@ static bool init_tun(private_tun_device_t *this, const char *name_tmpl)
         TCHAR *InterfaceList = NULL;
         DWORD RequiredBytes = 0;
         while (TRUE) {
-            DESTROY_IF(InterfaceList);
+            if (InterfaceList) {
+                free(InterfaceList);
+                InterfaceList = NULL;
+            }
             if (CM_Get_Device_Interface_List_Size(&RequiredBytes, (LPGUID)&GUID_DEVINTERFACE_NET,
-                InstanceId, CM_GET_DEVICE_INTERFACE_LIST_PRESENT) != CR_SUCCESS)
+                PNP_INSTANCE_ID, CM_GET_DEVICE_INTERFACE_LIST_PRESENT) != CR_SUCCESS)
                 return FALSE;
             InterfaceList = calloc(sizeof(*InterfaceList), RequiredBytes);
             if (!InterfaceList)
@@ -530,28 +572,33 @@ static bool init_tun(private_tun_device_t *this, const char *name_tmpl)
             if (Ret != CR_BUFFER_SMALL) {
                 free(InterfaceList);
                 return FALSE;
-            }        
+            }
         }
-         
-
+        /* If the TUN device already exists, delete it */
         /* If the TUN device doesn't exist, create it */
+        
         /* Open the handle by using the InterfaceList */
         this->tun_handle = CreateFile(InterfaceList, GENERIC_READ | GENERIC_WRITE,
                                          FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
                                          NULL, OPEN_EXISTING, 0, NULL);
         free(InterfaceList);
         /* Create structs for rings and the rings themselves */
-        this->rings = malloc(sizeof(TUN_REGISTER_RINGS));
-        this->rings->Receive.Ring = malloc(TUN_RING_SIZE(this->rings->Receive, TUN_RING_CAPACITY));
+        this->rings = calloc(sizeof(TUN_REGISTER_RINGS), 1);
+        this->rings->Send.Ring = calloc(sizeof(TUN_RING), 1);
+        this->rings->Receive.Ring = calloc(sizeof(TUN_RING), 1);
+        
+        /* this->rings->Receive.Ring = malloc(TUN_RING_SIZE(this->rings->Receive, TUN_RING_CAPACITY));
         this->rings->Send.Ring = malloc(TUN_RING_SIZE(this->rings->Send, TUN_RING_CAPACITY));
+        */
         /* Tell driver about the rings */
         DeviceIoControl(this->tun_handle,
             TUN_IOCTL_REGISTER_RINGS,
-            this->rings->Receive,
-            TUN_RING_SIZE(this->rings->Receive, TUN_RING_CAPACITY,
-            this->rings->Send,
-            TUN_RING_SIZE(this->rings->Send, TUN_RING_CAPACITY,
-
+            &this->rings->Receive,
+            TUN_RING_SIZE(this->rings->Receive, TUN_RING_CAPACITY),
+            &this->rings->Send,
+            TUN_RING_SIZE(this->rings->Send, TUN_RING_CAPACITY),
+            NULL,
+            NULL
             );
         /* We're done now */
 #elif defined(__APPLE__)
@@ -692,14 +739,22 @@ tun_device_t *tun_device_create(const char *name_tmpl)
 			.get_mtu = _get_mtu,
 			.set_mtu = _set_mtu,
 			.get_name = _get_name,
+#ifdef __WIN32__
+                        .get_handle = _get_handle,
+#else
 			.get_fd = _get_fd,
+#endif /* !__WIN32__ */
 			.set_address = _set_address,
 			.get_address = _get_address,
 			.up = _up,
 			.destroy = _destroy,
 		},
+#ifdef __WIN32__
+                .tun_handle = NULL,
+#else
 		.tunfd = -1,
 		.sock = -1,
+#endif
 	);
 
 	if (!init_tun(this, name_tmpl))
