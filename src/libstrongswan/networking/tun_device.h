@@ -26,11 +26,22 @@
 #include <networking/host.h>
 
 #ifdef __WIN32__
+/* capacity must be a power of two and between 128 kiB and 64 MiB */
+#define TUN_PACKET_ALIGNMENT 4
+#define TUN_RING_CAPACITY 64*1024*1024
+#define TUN_RING_SIZE(TUN_RING, capacity) (sizeof(TUN_RING) + capacity + 0x10000)
+#define TUN_MAX_IP_PACKET_SIZE 0xFFFF
+#define PNP_INSTANCE_ID "{abcde}"
+#define TUN_IOCTL_REGISTER_RINGS 0xca6ce5c0
+#define TUN_PACKET_TRAILING_SIZE (sizeof(uint32_t) + ((TUN_MAX_IP_PACKET_SIZE + \
+    (TUN_PACKET_ALIGNMENT - 1)) &~(TUN_PACKET_ALIGNMENT - 1)) - TUN_PACKET_ALIGNMENT)
+#define TUN_WRAP_POSITION(position, size) (position & (size - 1))
+#define TUN_PACKET_ALIGN(size) ((size + (TUN_PACKET_ALIGNMENT - 1)) &~(TUN_PACKET_ALIGNMENT - 1))
 typedef struct _TUN_RING {
     volatile ULONG Head;
     volatile ULONG Tail;
     volatile LONG Alertable;
-    UCHAR Data[];
+    UCHAR Data[TUN_RING_CAPACITY + TUN_PACKET_TRAILING_SIZE];
 } TUN_RING;
 
 typedef struct _TUN_REGISTER_RINGS {
@@ -45,14 +56,8 @@ typedef struct _TUN_REGISTER_RINGS {
 
 typedef struct _TUN_PACKET {
     ULONG Size;
-    UCHAR Data[];
+    UCHAR Data[TUN_MAX_IP_PACKET_SIZE];
 } TUN_PACKET;
-/* capacity must be a power of two and between 128 kiB and 64 MiB */
-#define TUN_RING_CAPACITY = 64*1024*1024;
-#define TUN_RING_SIZE(TUN_RING, capacity) {sizeof(TUN_RING) + capacity + 0x10000};
-#define TUN_MAX_IP_PACKET_SIZE 0xFFFF
-#define PNP_INSTANCE_ID 0x124532
-#define TUN_IOCTL_REGISTER_RINGS 0xca6ce5c0
 #endif
 typedef struct tun_device_t tun_device_t;
 
@@ -128,13 +133,21 @@ struct tun_device_t {
 	 */
 	char *(*get_name)(tun_device_t *this);
 
+#ifdef __WIN32__
+        /**
+         * Get the underlying HANDLE.
+         *
+         * @return                              file HANDLE of this tun device
+         */
+        HANDLE (*get_handle)(tun_device_t *this);
+#else
 	/**
 	 * Get the underlying tun file descriptor.
 	 *
 	 * @return				file descriptor of this tun device
 	 */
 	int (*get_fd)(tun_device_t *this);
-
+#endif /* !__WIN32__ */
 	/**
 	 * Destroy a tun_device_t
 	 */
