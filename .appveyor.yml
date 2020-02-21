@@ -27,3 +27,4 @@ build_script:
 
 test_script:
   - '%MSYS_SH% --login -c ". /etc/profile && cd $APPVEYOR_BUILD_FOLDER && ./scripts/test.sh"'
+  - '%MSYS_SH% --login -c ". /etc/profile && cd $APPVEYOR_BUILD_FOLDER && ./scripts/test.sh wintun"'
