@@ -3,6 +3,7 @@ clone_depth: 50
 image:
   - Visual Studio 2015
   - Visual Studio 2017
+  - Ubuntu
 
 environment:
   global:
@@ -13,17 +14,66 @@ environment:
   matrix:
     - arch: x86_64
       bits: 64
-    # no 32-bit build as 32-bit msys is not installed
-    #- arch: i686
-    #  bits: 32
 
-install:
-  - set MSYS_SH=C:\msys%BITS%\usr\bin\sh.exe
-  - set MSYSTEM=MINGW%BITS%
-  - set TEST=win%BITS%
+# Don't build if it's a push with a tag
+skip_tags: true
 
+
+# anything but Visual Studio
 build_script:
-  - '%MSYS_SH% --login -c ". /etc/profile && cd $APPVEYOR_BUILD_FOLDER && ./scripts/test.sh deps"'
+      - ./scripts/test.sh deps
+      - ./scripts/test.sh pydeps
+      - sudo sysctl -w net.ipv6.conf.all.disable_ipv6=0 || true
 
-test_script:
-  - '%MSYS_SH% --login -c ". /etc/profile && cd $APPVEYOR_BUILD_FOLDER && ./scripts/test.sh"'
+for:
+  - environment:
+      TEST: all
+  - environment:
+      TEST: all
+      MONOLITHIC: yes
+  - environment:
+      TEST: coverage
+  - environment:
+      TEST: all
+      LEAK_DETECTIVE: yes
+  - environment:
+      TEST: win64
+      MONOLITHIC: yes
+    matrix:
+      only:
+        - image: Ubuntu
+  - environment:
+      TEST: printf-builtin
+  - environment:
+      TEST: botan
+  - environment:
+      TEST: openssl
+  - environment:
+      TEST: openssl
+      LEAK_DETECTIVE: yes
+  - environment:
+      TEST: gcrypt
+  - environment:
+      TEST: gcrypt
+      LEAK_DETECTIVE: yes
+  - environment:
+      TEST: apidoc
+  - matrix:
+      only:
+        - image: Visual Studio 2017
+    environment:
+      TEST: wintun
+  - matrix:
+      only:
+        - image: Visual Studio 2017
+    environment:
+      TEST: win64
+      MONOLITHIC: yes
+    install:
+    - set MSYS_SH=C:\msys%BITS%\usr\bin\sh.exe
+    - set MSYSTEM=MINGW%BITS%
+    - set TEST=win%BITS%
+    build_script:
+    - '%MSYS_SH% --login -c ". /etc/profile && cd $APPVEYOR_BUILD_FOLDER && ./scripts/test.sh deps"'
+    test_script:
+    - '%MSYS_SH% --login -c ". /etc/profile && cd $APPVEYOR_BUILD_FOLDER && ./scripts/test.sh"'
