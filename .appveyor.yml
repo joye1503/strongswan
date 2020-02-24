@@ -40,7 +40,7 @@ for:
       TEST: win64
       MONOLITHIC: yes
       matrix:
-        image: Visual Studio 2017
+      - image: Visual Studio 2017
 
   - environment:
       TEST: printf-builtin
@@ -74,8 +74,8 @@ for:
   - environment:
       TEST: openssl
     matrix:
-      except:
-        - image: ubuntu
+    - except:
+      - image: ubuntu
     install:
     - set MSYS_SH=C:\msys%BITS%\usr\bin\sh.exe
     - set MSYSTEM=MINGW%BITS%
@@ -95,13 +95,13 @@ for:
   - environment:
       TEST: apidoc
   - matrix:
-      only:
-        - image: Visual Studio 2017
+    - only:
+      - image: Visual Studio 2017
     environment:
       TEST: wintun
   - matrix:
-      only:
-        - image: Visual Studio 2017
+    - only:
+      - image: Visual Studio 2017
     environment:
       TEST: win64
       MONOLITHIC: yes
