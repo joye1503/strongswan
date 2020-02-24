@@ -21,9 +21,9 @@ skip_tags: true
 
 # anything but Visual Studio
 build_script:
-      - ./scripts/test.sh deps
-      - ./scripts/test.sh pydeps
-      - sudo sysctl -w net.ipv6.conf.all.disable_ipv6=0 || true
+  - ./scripts/test.sh deps
+  - ./scripts/test.sh pydeps
+  - sudo sysctl -w net.ipv6.conf.all.disable_ipv6=0 || true
 
 for:
   - environment:
@@ -39,15 +39,51 @@ for:
   - environment:
       TEST: win64
       MONOLITHIC: yes
-    matrix:
-      only:
-        - image: Ubuntu
+      matrix:
+        image: Visual Studio 2017
+
   - environment:
       TEST: printf-builtin
   - environment:
+      TEST: printf-builtin
+    image: Visual Studio 2017
+    install:
+    - set MSYS_SH=C:\msys%BITS%\usr\bin\sh.exe
+    - set MSYSTEM=MINGW%BITS%
+    - set TEST=win%BITS%
+    build_script:
+    - '%MSYS_SH% --login -c ". /etc/profile && cd $APPVEYOR_BUILD_FOLDER && ./scripts/test.sh deps"'
+    test_script:
+    - '%MSYS_SH% --login -c ". /etc/profile && cd $APPVEYOR_BUILD_FOLDER && ./scripts/test.sh"'
+  - environment:
       TEST: botan
+    only:
+    - image: Ubuntu
+  - environment:
+      TEST: botan
+    only:
+    - image: Visual Studio 2017
+    install:
+    - set MSYS_SH=C:\msys%BITS%\usr\bin\sh.exe
+    - set MSYSTEM=MINGW%BITS%
+    - set TEST=win%BITS%
+    build_script:
+    - '%MSYS_SH% --login -c ". /etc/profile && cd $APPVEYOR_BUILD_FOLDER && ./scripts/test.sh deps"'
+    test_script:
+    - '%MSYS_SH% --login -c ". /etc/profile && cd $APPVEYOR_BUILD_FOLDER && ./scripts/test.sh"'
   - environment:
       TEST: openssl
+    matrix:
+      except:
+        - image: ubuntu
+    install:
+    - set MSYS_SH=C:\msys%BITS%\usr\bin\sh.exe
+    - set MSYSTEM=MINGW%BITS%
+    - set TEST=win%BITS%
+    build_script:
+    - '%MSYS_SH% --login -c ". /etc/profile && cd $APPVEYOR_BUILD_FOLDER && ./scripts/test.sh deps"'
+    test_script:
+    - '%MSYS_SH% --login -c ". /etc/profile && cd $APPVEYOR_BUILD_FOLDER && ./scripts/test.sh"'
   - environment:
       TEST: openssl
       LEAK_DETECTIVE: yes
