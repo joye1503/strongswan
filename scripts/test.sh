@@ -175,6 +175,9 @@ win*)
 			--enable-imc-os --enable-imv-os --enable-tnc-imv --enable-tnc-imc
 			--enable-pki --enable-swanctl --enable-socket-win
 			--enable-kernel-iph --enable-kernel-wfp --enable-winhttp"
+	if test "$TARGET" == "wintun"; then
+		CONFIG="$CONFIG --enable-wintun --enable-kernel-libipsec --enable-libipsec"
+	fi
 	# no make check for Windows binaries unless we run on a windows host
 	if test "$APPVEYOR" != "True"; then
 		TARGET=
@@ -187,18 +190,9 @@ win*)
 	fi
 	CFLAGS="$CFLAGS -mno-ms-bitfields"
 	DEPS="gcc-mingw-w64-base"
-	case "$TEST" in
-	win64)
-		CONFIG="--host=x86_64-w64-mingw32 $CONFIG --enable-dbghelp-backtraces"
-		DEPS="gcc-mingw-w64-x86-64 binutils-mingw-w64-x86-64 mingw-w64-x86-64-dev $DEPS"
-		CC="$CCACHE x86_64-w64-mingw32-gcc"
-		;;
-	win32)
-		CONFIG="--host=i686-w64-mingw32 $CONFIG"
-		DEPS="gcc-mingw-w64-i686 binutils-mingw-w64-i686 mingw-w64-i686-dev $DEPS"
-		CC="$CCACHE i686-w64-mingw32-gcc"
-		;;
-	esac
+	CONFIG="--host=x86_64-w64-mingw32 $CONFIG --enable-dbghelp-backtraces"
+	DEPS="gcc-mingw-w64-x86-64 binutils-mingw-w64-x86-64 mingw-w64-x86-64-dev $DEPS"
+	CC="$CCACHE x86_64-w64-mingw32-gcc"
 	;;
 osx)
 	# this causes a false positive in ip-packet.c since Xcode 8.3
