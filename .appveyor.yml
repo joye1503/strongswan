@@ -62,8 +62,9 @@ for:
       - image: Ubuntu
   - environment:
       TEST: botan
-    only:
-    - image: Visual Studio 2017
+    matrix:
+      only:
+      - image: Visual Studio 2017
     install:
     - set MSYS_SH=C:\msys%BITS%\usr\bin\sh.exe
     - set MSYSTEM=MINGW%BITS%
@@ -96,8 +97,8 @@ for:
   - environment:
       TEST: apidoc
   - matrix:
-    only:
-    - image: Visual Studio 2017
+      only:
+      - image: Visual Studio 2017
     environment:
       TEST: wintun
   - matrix:
