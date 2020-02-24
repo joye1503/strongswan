@@ -58,7 +58,7 @@ for:
   - environment:
       TEST: botan
     matrix:
-    - only:
+      only:
       - image: Ubuntu
   - environment:
       TEST: botan
@@ -75,7 +75,7 @@ for:
   - environment:
       TEST: openssl
     matrix:
-    - except:
+      except:
       - image: ubuntu
     install:
     - set MSYS_SH=C:\msys%BITS%\usr\bin\sh.exe
@@ -96,12 +96,12 @@ for:
   - environment:
       TEST: apidoc
   - matrix:
-    - only:
-      - image: Visual Studio 2017
+    only:
+    - image: Visual Studio 2017
     environment:
       TEST: wintun
   - matrix:
-    - only:
+      only:
       - image: Visual Studio 2017
     environment:
       TEST: win64
