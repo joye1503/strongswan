@@ -57,8 +57,9 @@ for:
     - '%MSYS_SH% --login -c ". /etc/profile && cd $APPVEYOR_BUILD_FOLDER && ./scripts/test.sh"'
   - environment:
       TEST: botan
-    only:
-    - image: Ubuntu
+    matrix:
+    - only:
+      - image: Ubuntu
   - environment:
       TEST: botan
     only:
