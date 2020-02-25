@@ -448,11 +448,11 @@ METHOD(tun_device_t, read_packet, bool,
                 this->rings->Send.Ring->Alertable = TRUE;
             next = pop_from_ring(this->rings->Send.Ring);
             if (!next) {
-            WaitForSingleObject(this->rings->Send.TailMoved, INFINITE);
-                    this->rings->Send.Ring->Alertable = FALSE;
-                }
-                this->rings->Send.Ring->Alertable = FALSE,
-                        ResetEvent(this->rings->Send.TailMoved);
+                WaitForSingleObject(this->rings->Send.TailMoved, INFINITE);
+                this->rings->Send.Ring->Alertable = FALSE;
+            }
+            this->rings->Send.Ring->Alertable = FALSE,
+            ResetEvent(this->rings->Send.TailMoved);
         }
         packet = next;
         return TRUE;
