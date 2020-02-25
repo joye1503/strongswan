@@ -52,6 +52,9 @@ matrix:
       TEST: apidoc
     - image: Visual Studio 2017
       TEST: coverage
+    - image: Visual Studio 2017
+      TEST: all
+      MONOLITHIC: no
 
 
 # Don't build if it's a push with a tag
