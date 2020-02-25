@@ -18,9 +18,6 @@ environment:
     - TEST: coverage
     - TEST: all
       LEAK_DETECTIVE: yes
-    - TEST: win64
-    - TEST: win64
-      MONOLITHIC: yes
     - TEST: all
     - TEST: all
       MONOLITHIC: yes
@@ -37,6 +34,7 @@ environment:
       LEAK_DETECTIVE: yes
     - TEST: apidoc
       MONOLITHIC: no
+    - TEST: win64
     - TEST: wintun
       MONOLITHIC: yes
 
