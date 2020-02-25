@@ -50,6 +50,8 @@ matrix:
       TEST: openssl
     - image: Visual Studio 2017
       TEST: apidoc
+    - image: Visual Studio 2017
+      MONOLITHIC: no
     - TEST: win64
       MONOLITHIC: no
     - TEST: wintun
