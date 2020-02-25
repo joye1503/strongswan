@@ -35,6 +35,7 @@ environment:
     - TEST: apidoc
       MONOLITHIC: no
     - TEST: win64
+      MONOLITHIC: yes
     - TEST: wintun
       MONOLITHIC: yes
 
@@ -42,9 +43,6 @@ matrix:
   exclude:
     - image: Ubuntu
       TEST: wintun
-    - image: Ubuntu
-      TEST: win64
-      MONOLITHIC: no
     - image: Visual Studio 2017
       TEST: botan
     - image: Visual Studio 2017
