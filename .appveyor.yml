@@ -69,7 +69,6 @@ for:
 - matrix:
     only:
       - image: Visual Studio 2017
-
   build_script:
   - '%MSYS_SH% --login -c ". /etc/profile && cd $APPVEYOR_BUILD_FOLDER && ./scripts/test.sh deps"'
   test_script:
