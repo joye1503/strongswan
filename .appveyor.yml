@@ -36,7 +36,9 @@ environment:
     - TEST: gcrypt
       LEAK_DETECTIVE: yes
     - TEST: apidoc
+      MONOLITHIC: no
     - TEST: wintun
+      MONOLITHIC: yes
 
 matrix:
   exclude:
