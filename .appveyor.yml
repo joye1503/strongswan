@@ -52,9 +52,9 @@ skip_tags: true
 
 for:
   # ubuntu specific
-- matrix:
+- image:
     only:
-      - image: Ubuntu
+      - Ubuntu
     except:
       - environment:
         matrix:
@@ -66,9 +66,9 @@ for:
   - sudo sysctl -w net.ipv6.conf.all.disable_ipv6=0 || true
   test_script:
    - ./scripts/test.sh
-- matrix:
+- image:
     only:
-      - image: Visual Studio 2017
+      - Visual Studio 2017
   build_script:
   - '%MSYS_SH% --login -c ". /etc/profile && cd $APPVEYOR_BUILD_FOLDER && ./scripts/test.sh deps"'
   test_script:
