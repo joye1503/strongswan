@@ -203,6 +203,10 @@ static chunk_t *pop_from_ring(TUN_RING *ring)
         chunk_packet->ptr = malloc(packet->Size);
         chunk_packet->len = packet->Size;
         memcpy(chunk_packet->ptr, packet->Data, chunk_packet->len);
+        /* Do we need to memset here? */
+        memset(packet->Data, 0, packet->Size);
+        /* move ring head */
+        ring->Head = TUN_WRAP_POSITION(ring->Head + aligned_packet_size);
         return chunk_packet;
 }
 #else
