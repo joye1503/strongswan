@@ -41,6 +41,7 @@ environment:
     - TEST: wintun
       MONOLITHIC: yes
     - TEST: printf-builtin
+      MONOLITHIC: yes
 
 matrix:
   exclude:
