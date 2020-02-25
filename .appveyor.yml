@@ -18,12 +18,12 @@ environment:
 # Don't build if it's a push with a tag
 skip_tags: true
 
-
 # anything but Visual Studio
 build_script:
   - ./scripts/test.sh deps
   - ./scripts/test.sh pydeps
   - sudo sysctl -w net.ipv6.conf.all.disable_ipv6=0 || true
+  - ./scripts/test.sh TEST=$TEST
 
 for:
   - environment:
