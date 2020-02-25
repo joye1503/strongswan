@@ -6,6 +6,7 @@ image:
 
 environment:
   global:
+    MONOLITHIC: no
     TESTS_REDUCED_KEYLENGTHS: yes
     TZ: Europe/Zurich
     arch: x86_64
@@ -49,6 +50,10 @@ matrix:
       TEST: openssl
     - image: Visual Studio 2017
       TEST: apidoc
+    - TEST: win64
+      MONOLITHIC: no
+    - TEST: wintun
+      MONOLITHIC: no
 
 # Don't build if it's a push with a tag
 skip_tags: true
