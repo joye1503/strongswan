@@ -51,7 +51,6 @@ skip_tags: true
 # anything but Visual Studio
 
 for:
-  # ubuntu specific
 - image:
     only:
       - Ubuntu
