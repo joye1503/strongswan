@@ -52,10 +52,6 @@ matrix:
       TEST: apidoc
     - image: Visual Studio 2017
       MONOLITHIC: no
-    - TEST: win64
-      MONOLITHIC: no
-    - TEST: wintun
-      MONOLITHIC: no
 
 # Don't build if it's a push with a tag
 skip_tags: true
