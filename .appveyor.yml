@@ -1,119 +1,80 @@
 clone_depth: 50
 
 image:
-  - Visual Studio 2015
   - Visual Studio 2017
   - Ubuntu
 
 environment:
   global:
     TESTS_REDUCED_KEYLENGTHS: yes
-    LEAK_DETECTIVE: no
-    MONOLITHIC: yes
     TZ: Europe/Zurich
+    arch: x86_64
+    bits: 64
   matrix:
-    - arch: x86_64
-      bits: 64
+  - TEST: all
+  - TEST: all
+    MONOLITHIC: yes
+  - TEST: coverage
+  - TEST: all
+    LEAK_DETECTIVE: yes
+  - TEST: win64
+  - TEST: win64
+    MONOLITHIC: yes
+  - TEST: all
+  - TEST: all
+    MONOLITHIC: yes
+  - TEST: coverage
+  - TEST: all
+    LEAK_DETECTIVE: yes
+  - TEST: printf-builtin
+  - TEST: botan
+  - TEST: openssl
+  - TEST: openssl
+    LEAK_DETECTIVE: yes
+  - TEST: gcrypt
+  - TEST: gcrypt
+    LEAK_DETECTIVE: yes
+  - TEST: apidoc
+  - TEST: wintun
 
+matrix:
+  exclude:
+    - image: Ubuntu
+      TEST: wintun
+    - image: Visual Studio 2017
+      TEST: botan
+    - image: Visual Studio 2017
+      TEST: gcrypt
 # Don't build if it's a push with a tag
 skip_tags: true
 
 # anything but Visual Studio
-build_script:
+
+for:
+  # ubuntu specific
+- matrix:
+    only:
+      - image: Ubuntu
+    except:
+      - environment:
+        matrix:
+          - TEST: win64
+          - TEST: wintun
+  build_script:
   - ./scripts/test.sh deps
   - ./scripts/test.sh pydeps
   - sudo sysctl -w net.ipv6.conf.all.disable_ipv6=0 || true
-
-test_script:
-  - ./scripts/test.sh
-
-for:
-  - environment:
-      TEST: all
-  - environment:
-      TEST: all
-      MONOLITHIC: yes
-  - environment:
-      TEST: coverage
-  - environment:
-      TEST: all
-      LEAK_DETECTIVE: yes
-  - environment:
-      TEST: win64
-      MONOLITHIC: yes
-      matrix:
+  test_script:
+   - ./scripts/test.sh
+- matrix:
+    only:
       - image: Visual Studio 2017
 
-  - environment:
-      TEST: printf-builtin
-  - environment:
-      TEST: printf-builtin
-    image: Visual Studio 2017
-    install:
-    - set MSYS_SH=C:\msys%BITS%\usr\bin\sh.exe
-    - set MSYSTEM=MINGW%BITS%
-    - set TEST=win%BITS%
-    build_script:
-    - '%MSYS_SH% --login -c ". /etc/profile && cd $APPVEYOR_BUILD_FOLDER && ./scripts/test.sh deps"'
-    test_script:
-    - '%MSYS_SH% --login -c ". /etc/profile && cd $APPVEYOR_BUILD_FOLDER && ./scripts/test.sh"'
-  - environment:
-      TEST: botan
-    matrix:
-      only:
-      - image: Ubuntu
-  - environment:
-      TEST: botan
-    matrix:
-      only:
-      - image: Visual Studio 2017
-    install:
-    - set MSYS_SH=C:\msys%BITS%\usr\bin\sh.exe
-    - set MSYSTEM=MINGW%BITS%
-    - set TEST=win%BITS%
-    build_script:
-    - '%MSYS_SH% --login -c ". /etc/profile && cd $APPVEYOR_BUILD_FOLDER && ./scripts/test.sh deps"'
-    test_script:
-    - '%MSYS_SH% --login -c ". /etc/profile && cd $APPVEYOR_BUILD_FOLDER && ./scripts/test.sh"'
-  - environment:
-      TEST: openssl
-    matrix:
-      except:
-      - image: ubuntu
-    install:
-    - set MSYS_SH=C:\msys%BITS%\usr\bin\sh.exe
-    - set MSYSTEM=MINGW%BITS%
-    - set TEST=win%BITS%
-    build_script:
-    - '%MSYS_SH% --login -c ". /etc/profile && cd $APPVEYOR_BUILD_FOLDER && ./scripts/test.sh deps"'
-    test_script:
-    - '%MSYS_SH% --login -c ". /etc/profile && cd $APPVEYOR_BUILD_FOLDER && ./scripts/test.sh"'
-  - environment:
-      TEST: openssl
-      LEAK_DETECTIVE: yes
-  - environment:
-      TEST: gcrypt
-  - environment:
-      TEST: gcrypt
-      LEAK_DETECTIVE: yes
-  - environment:
-      TEST: apidoc
-  - matrix:
-      only:
-      - image: Visual Studio 2017
-    environment:
-      TEST: wintun
-  - matrix:
-      only:
-      - image: Visual Studio 2017
-    environment:
-      TEST: win64
-      MONOLITHIC: yes
-    install:
-    - set MSYS_SH=C:\msys%BITS%\usr\bin\sh.exe
-    - set MSYSTEM=MINGW%BITS%
-    - set TEST=win%BITS%
-    build_script:
-    - '%MSYS_SH% --login -c ". /etc/profile && cd $APPVEYOR_BUILD_FOLDER && ./scripts/test.sh deps"'
-    test_script:
-    - '%MSYS_SH% --login -c ". /etc/profile && cd $APPVEYOR_BUILD_FOLDER && ./scripts/test.sh"'
+  build_script:
+  - '%MSYS_SH% --login -c ". /etc/profile && cd $APPVEYOR_BUILD_FOLDER && ./scripts/test.sh deps"'
+  test_script:
+  - '%MSYS_SH% --login -c ". /etc/profile && cd $APPVEYOR_BUILD_FOLDER && ./scripts/test.sh"'
+  install:
+  - set MSYS_SH=C:\msys%BITS%\usr\bin\sh.exe
+  - set MSYSTEM=MINGW%BITS%
+  - set TEST=win%BITS%
