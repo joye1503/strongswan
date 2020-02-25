@@ -200,8 +200,9 @@ static chunk_t *pop_from_ring(TUN_RING *ring)
         }
 
         chunk_packet = malloc(sizeof(chunk_t));
+        chunk_packet->ptr = malloc(packet->Size);
         chunk_packet->len = packet->Size;
-        chunk_packet->ptr = packet->Data;
+        memcpy(chunk_packet->ptr, packet->Data, chunk_packet->len);
         return chunk_packet;
 }
 #else
