@@ -1,30 +1,88 @@
 clone_depth: 50
 
 image:
-  - Visual Studio 2015
   - Visual Studio 2017
+  - Ubuntu
+
+cache:
+  - C:\projects\strongswan -> /
 
 environment:
   global:
+    MONOLITHIC: no
     TESTS_REDUCED_KEYLENGTHS: yes
-    LEAK_DETECTIVE: no
-    MONOLITHIC: yes
     TZ: Europe/Zurich
+    arch: x86_64
+    bits: 64
   matrix:
-    - arch: x86_64
-      bits: 64
-    # no 32-bit build as 32-bit msys is not installed
-    #- arch: i686
-    #  bits: 32
+    - TEST: all
+    - TEST: all
+      MONOLITHIC: yes
+    - TEST: coverage
+    - TEST: all
+      LEAK_DETECTIVE: yes
+    - TEST: all
+    - TEST: all
+      MONOLITHIC: yes
+    - TEST: coverage
+    - TEST: all
+      LEAK_DETECTIVE: yes
+    - TEST: botan
+    - TEST: openssl
+    - TEST: openssl
+      LEAK_DETECTIVE: yes
+    - TEST: gcrypt
+    - TEST: gcrypt
+      LEAK_DETECTIVE: yes
+    - TEST: apidoc
+      MONOLITHIC: no
+    - TEST: win64
+      MONOLITHIC: yes
+    - TEST: wintun
+      MONOLITHIC: yes
+    - TEST: printf-builtin
+      MONOLITHIC: yes
 
-install:
-  - set MSYS_SH=C:\msys%BITS%\usr\bin\sh.exe
-  - set MSYSTEM=MINGW%BITS%
-  - set TEST=win%BITS%
+matrix:
+  exclude:
+    - image: Ubuntu
+      TEST: wintun
+    - image: Visual Studio 2017
+      TEST: botan
+    - image: Visual Studio 2017
+      TEST: gcrypt
+    - image: Visual Studio 2017
+      TEST: openssl
+    - image: Visual Studio 2017
+      TEST: apidoc
+    - image: Visual Studio 2017
+      TEST: coverage
+    - image: Visual Studio 2017
+      TEST: all
+      MONOLITHIC: no
 
-build_script:
-  - '%MSYS_SH% --login -c ". /etc/profile && cd $APPVEYOR_BUILD_FOLDER && ./scripts/test.sh deps"'
 
-test_script:
-  - '%MSYS_SH% --login -c ". /etc/profile && cd $APPVEYOR_BUILD_FOLDER && ./scripts/test.sh"'
-  - '%MSYS_SH% --login -c ". /etc/profile && cd $APPVEYOR_BUILD_FOLDER && ./scripts/test.sh wintun"'
+# Don't build if it's a push with a tag
+skip_tags: true
+
+for:
+- matrix:
+    only:
+      - image: Ubuntu
+  build_script:
+    - ./scripts/test.sh deps
+    - ./scripts/test.sh pydeps
+    - sudo sysctl -w net.ipv6.conf.all.disable_ipv6=0 || true
+  test_script:
+    - ./scripts/test.sh
+- matrix:
+    only:
+      - image: Visual Studio 2017
+  build_script:
+    - '%MSYS_SH% --login -c ". /etc/profile && cd $APPVEYOR_BUILD_FOLDER && ./scripts/test.sh deps"'
+  test_script:
+    - '%MSYS_SH% --login -c ". /etc/profile && cd $APPVEYOR_BUILD_FOLDER && ./scripts/test.sh"'
+  install:
+    - set MSYS_SH=C:\msys%BITS%\usr\bin\sh.exe
+    - set MSYSTEM=MINGW%BITS%
+    - set TEST=win%BITS%

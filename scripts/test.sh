@@ -65,7 +65,7 @@ build_wolfssl()
 
 build_tss2()
 {
-	TSS2_REV=2.3.1
+	TSS2_REV=2.3.3
 	TSS2_PKG=tpm2-tss-$TSS2_REV
 	TSS2_DIR=$DEPS_BUILD_DIR/$TSS2_PKG
 	TSS2_SRC=https://github.com/tpm2-software/tpm2-tss/releases/download/$TSS2_REV/$TSS2_PKG.tar.gz
@@ -175,6 +175,9 @@ win*)
 			--enable-imc-os --enable-imv-os --enable-tnc-imv --enable-tnc-imc
 			--enable-pki --enable-swanctl --enable-socket-win
 			--enable-kernel-iph --enable-kernel-wfp --enable-winhttp"
+	if test "$TARGET" == "wintun"; then
+		CONFIG="$CONFIG --enable-wintun --enable-kernel-libipsec --enable-libipsec"
+	fi
 	# no make check for Windows binaries unless we run on a windows host
 	if test "$APPVEYOR" != "True"; then
 		TARGET=
@@ -187,18 +190,9 @@ win*)
 	fi
 	CFLAGS="$CFLAGS -mno-ms-bitfields"
 	DEPS="gcc-mingw-w64-base"
-	case "$TEST" in
-	win64)
-		CONFIG="--host=x86_64-w64-mingw32 $CONFIG --enable-dbghelp-backtraces"
-		DEPS="gcc-mingw-w64-x86-64 binutils-mingw-w64-x86-64 mingw-w64-x86-64-dev $DEPS"
-		CC="$CCACHE x86_64-w64-mingw32-gcc"
-		;;
-	win32)
-		CONFIG="--host=i686-w64-mingw32 $CONFIG"
-		DEPS="gcc-mingw-w64-i686 binutils-mingw-w64-i686 mingw-w64-i686-dev $DEPS"
-		CC="$CCACHE i686-w64-mingw32-gcc"
-		;;
-	esac
+	CONFIG="--host=x86_64-w64-mingw32 $CONFIG --enable-dbghelp-backtraces"
+	DEPS="gcc-mingw-w64-x86-64 binutils-mingw-w64-x86-64 mingw-w64-x86-64-dev $DEPS"
+	CC="$CCACHE x86_64-w64-mingw32-gcc"
 	;;
 osx)
 	# this causes a false positive in ip-packet.c since Xcode 8.3
@@ -269,6 +263,17 @@ fuzzing)
 			handle_abort=1:check_malloc_usable_size=0:quarantine_size_mb=10:detect_odr_violation=0:\
 			symbolize=1:handle_segv=1:fast_unwind_on_fatal=0:external_symbolizer_path=/usr/bin/llvm-symbolizer-3.5
 	fi
+	;;
+nm|nm-no-glib)
+	DEPS="gnome-common libsecret-1-dev libgtk-3-dev libnm-dev libnma-dev"
+	if test "$TEST" = "nm"; then
+		DEPS="$DEPS libnm-glib-vpn-dev libnm-gtk-dev"
+	else
+		CONFIG="$CONFIG --without-libnm-glib"
+	fi
+	cd src/frontends/gnome
+	# don't run ./configure with ./autogen.sh
+	export NOCONFIGURE=1
 	;;
 dist)
 	TARGET=distcheck
@@ -422,6 +427,8 @@ sonarcloud)
 		-Dsonar.projectVersion=$(git describe)+${TRAVIS_BUILD_NUMBER} \
 		-Dsonar.sources=. \
 		-Dsonar.cfamily.threads=2 \
+		-Dsonar.cfamily.cache.enabled=true \
+		-Dsonar.cfamily.cache.path=$HOME/.sonar-cache \
 		-Dsonar.cfamily.build-wrapper-output=bw-output || exit $?
 	rm -r bw-output .scannerwork
 	;;
