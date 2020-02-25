@@ -42,6 +42,9 @@ matrix:
   exclude:
     - image: Ubuntu
       TEST: wintun
+    - image: Ubuntu
+      TEST: win64
+      MONOLITHIC: no
     - image: Visual Studio 2017
       TEST: botan
     - image: Visual Studio 2017
