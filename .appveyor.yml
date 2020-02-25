@@ -57,9 +57,6 @@ for:
 - matrix:
     only:
       - image: Ubuntu
-    except:
-      - TEST: win64
-      - TEST: wintun
   build_script:
     - ./scripts/test.sh deps
     - ./scripts/test.sh pydeps
