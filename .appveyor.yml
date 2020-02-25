@@ -24,7 +24,6 @@ environment:
     - TEST: coverage
     - TEST: all
       LEAK_DETECTIVE: yes
-    - TEST: printf-builtin
     - TEST: botan
     - TEST: openssl
     - TEST: openssl
@@ -38,6 +37,7 @@ environment:
       MONOLITHIC: yes
     - TEST: wintun
       MONOLITHIC: yes
+    - TEST: printf-builtin
 
 matrix:
   exclude:
