@@ -55,9 +55,8 @@ for:
       - image: Ubuntu
     except:
       - environment:
-        matrix:
-          - TEST: win64
-          - TEST: wintun
+        - TEST: win64
+        - TEST: wintun
   build_script:
     - ./scripts/test.sh deps
     - ./scripts/test.sh pydeps
