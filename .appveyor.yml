@@ -45,10 +45,14 @@ matrix:
       TEST: botan
     - image: Visual Studio 2017
       TEST: gcrypt
+    - image: Visual Studio 2017
+      TEST: openssl
+    - image: Visual Studio 2017
+      TEST: apidoc
+
 # Don't build if it's a push with a tag
 skip_tags: true
 
-# anything but Visual Studio
 for:
 - matrix:
     only:
