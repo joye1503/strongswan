@@ -4,6 +4,9 @@ image:
   - Visual Studio 2017
   - Ubuntu
 
+cache:
+  - C:\projects\strongswan -> /
+
 environment:
   global:
     MONOLITHIC: no
