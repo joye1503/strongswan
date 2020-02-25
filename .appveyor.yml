@@ -11,31 +11,31 @@ environment:
     arch: x86_64
     bits: 64
   matrix:
-  - TEST: all
-  - TEST: all
-    MONOLITHIC: yes
-  - TEST: coverage
-  - TEST: all
-    LEAK_DETECTIVE: yes
-  - TEST: win64
-  - TEST: win64
-    MONOLITHIC: yes
-  - TEST: all
-  - TEST: all
-    MONOLITHIC: yes
-  - TEST: coverage
-  - TEST: all
-    LEAK_DETECTIVE: yes
-  - TEST: printf-builtin
-  - TEST: botan
-  - TEST: openssl
-  - TEST: openssl
-    LEAK_DETECTIVE: yes
-  - TEST: gcrypt
-  - TEST: gcrypt
-    LEAK_DETECTIVE: yes
-  - TEST: apidoc
-  - TEST: wintun
+    - TEST: all
+    - TEST: all
+      MONOLITHIC: yes
+    - TEST: coverage
+    - TEST: all
+      LEAK_DETECTIVE: yes
+    - TEST: win64
+    - TEST: win64
+      MONOLITHIC: yes
+    - TEST: all
+    - TEST: all
+      MONOLITHIC: yes
+    - TEST: coverage
+    - TEST: all
+      LEAK_DETECTIVE: yes
+    - TEST: printf-builtin
+    - TEST: botan
+    - TEST: openssl
+    - TEST: openssl
+      LEAK_DETECTIVE: yes
+    - TEST: gcrypt
+    - TEST: gcrypt
+      LEAK_DETECTIVE: yes
+    - TEST: apidoc
+    - TEST: wintun
 
 matrix:
   exclude:
@@ -49,7 +49,6 @@ matrix:
 skip_tags: true
 
 # anything but Visual Studio
-
 for:
 - matrix:
     only:
@@ -60,19 +59,19 @@ for:
           - TEST: win64
           - TEST: wintun
   build_script:
-  - ./scripts/test.sh deps
-  - ./scripts/test.sh pydeps
-  - sudo sysctl -w net.ipv6.conf.all.disable_ipv6=0 || true
+    - ./scripts/test.sh deps
+    - ./scripts/test.sh pydeps
+    - sudo sysctl -w net.ipv6.conf.all.disable_ipv6=0 || true
   test_script:
-   - ./scripts/test.sh
+     - ./scripts/test.sh
 - matrix:
     only:
       - image: Visual Studio 2017
   build_script:
-  - '%MSYS_SH% --login -c ". /etc/profile && cd $APPVEYOR_BUILD_FOLDER && ./scripts/test.sh deps"'
+    - '%MSYS_SH% --login -c ". /etc/profile && cd $APPVEYOR_BUILD_FOLDER && ./scripts/test.sh deps"'
   test_script:
-  - '%MSYS_SH% --login -c ". /etc/profile && cd $APPVEYOR_BUILD_FOLDER && ./scripts/test.sh"'
+    - '%MSYS_SH% --login -c ". /etc/profile && cd $APPVEYOR_BUILD_FOLDER && ./scripts/test.sh"'
   install:
-  - set MSYS_SH=C:\msys%BITS%\usr\bin\sh.exe
-  - set MSYSTEM=MINGW%BITS%
-  - set TEST=win%BITS%
+    - set MSYS_SH=C:\msys%BITS%\usr\bin\sh.exe
+    - set MSYSTEM=MINGW%BITS%
+    - set TEST=win%BITS%
