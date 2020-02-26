@@ -371,8 +371,8 @@ if test "$1" = "deps"; then
 		pkg install -y bison flex gperf gettext $DEPS
 		;;
 	linux|*)
-		sudo apt-get update -qq && \
-		sudo apt-get install -qq bison flex gperf gettext $DEPS
+		$sudo apt-get update -qq && \
+		$sudo apt-get install -qq bison flex gperf gettext $DEPS
 		;;
 
 	esac
