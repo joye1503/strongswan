@@ -372,7 +372,7 @@ if test "$1" = "deps"; then
             sudo apt-get install -Syu bison flex gperf gettext $DEPS
             ;;
         True)
-            pacman --noconfirm -Syu bison flex gperf gettext mingw-w64-x86_64-gmp gmp ccache
+            pacman --noconfirm -Sy bison flex gperf gettext mingw-w64-x86_64-gmp gmp ccache
             ;;
         esac
 	exit $?
