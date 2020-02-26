@@ -30,8 +30,8 @@ build_botan()
 	git checkout -qf $BOTAN_REV &&
 	python ./configure.py --amalgamation $BOTAN_CONFIG &&
 	make -j4 libs >/dev/null &&
-	sudo make install >/dev/null &&
-	sudo ldconfig || exit $?
+	$sudo make install >/dev/null &&
+	$sudo ldconfig || exit $?
 	cd -
 }
 
@@ -94,6 +94,14 @@ TARGET=check
 DEPS="libgmp-dev ccache"
 
 CFLAGS="-g -O2 -Wall -Wno-format -Wno-format-security -Wno-pointer-sign -Werror"
+
+#True is Windows, true is Ubuntu
+# no sudo on Windows
+if test "$APPVEYOR" = "True"; then
+    export sudo=""
+else
+    export sudo="sudo"
+fi
 
 case "$TEST" in
 default)
@@ -363,10 +371,6 @@ if test "$1" = "deps"; then
 		pkg install -y bison flex gperf gettext $DEPS
 		;;
 	linux|*)
-                # True is Windows, true is Ubuntu
-                if test "$APPVEYOR" = "True"; then
-                    sudo=""
-                fi
 		sudo apt-get update -qq && \
 		sudo apt-get install -qq bison flex gperf gettext $DEPS
 		;;
