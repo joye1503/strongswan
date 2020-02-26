@@ -355,8 +355,8 @@ esac
 if test "$1" = "deps"; then
 	case "$TRAVIS_OS_NAME" in
 	linux)
-		sudo apt-get update -qq && \
-		sudo apt-get install -qq bison flex gperf gettext $DEPS
+		sudo apt-get update && \
+		sudo apt-get install bison flex gperf gettext $DEPS
 		;;
 	osx)
 		brew update && \
