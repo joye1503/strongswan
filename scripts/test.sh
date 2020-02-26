@@ -363,9 +363,14 @@ if test "$1" = "deps"; then
 		pkg install -y bison flex gperf gettext $DEPS
 		;;
 	linux|*)
+                # True is Windows, true is Ubuntu
+                if test "$APPVEYOR" = "True"; then
+                    sudo=""
+                fi
 		sudo apt-get update -qq && \
 		sudo apt-get install -qq bison flex gperf gettext $DEPS
 		;;
+
 	esac
 	exit $?
 fi
