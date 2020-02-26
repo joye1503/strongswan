@@ -367,6 +367,14 @@ if test "$1" = "deps"; then
 		pkg install -y bison flex gperf gettext $DEPS
 		;;
 	esac
+        case "$APPVEYOR" in
+        true)
+            sudo apt-get install -Syu bison flex gperf gettext $DEPS
+            ;;
+        True)
+            pacman --noconfirm -Syu bison flex gperf gettext libgmp ccache
+            ;;
+        esac
 	exit $?
 fi
 
