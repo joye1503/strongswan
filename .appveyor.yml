@@ -6,6 +6,7 @@ image:
 
 cache:
   - C:\projects\strongswan -> /
+  - C:\CCACHE
 
 environment:
   global:
@@ -86,6 +87,7 @@ for:
   test_script:
     - '%MSYS_SH% --login -c ". /etc/profile && cd $APPVEYOR_BUILD_FOLDER && ./scripts/test.sh"'
   install:
+    - set CCACHE_DIR=C:\CCACHE
     - set MSYS_SH=C:\msys%BITS%\usr\bin\sh.exe
     - set MSYSTEM=MINGW%BITS%
     - set TEST=win%BITS%

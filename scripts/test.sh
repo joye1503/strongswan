@@ -91,7 +91,7 @@ build_tss2()
 
 TARGET=check
 
-DEPS="libgmp-dev"
+DEPS="libgmp-dev ccache"
 
 CFLAGS="-g -O2 -Wall -Wno-format -Wno-format-security -Wno-pointer-sign -Werror"
 
@@ -179,9 +179,9 @@ win*)
 		CONFIG="$CONFIG --enable-wintun --enable-kernel-libipsec --enable-libipsec"
 	fi
 	# no make check for Windows binaries unless we run on a windows host
+        CCACHE=ccache
 	if test "$APPVEYOR" != "True"; then
 		TARGET=
-		CCACHE=ccache
 	else
 		CONFIG="$CONFIG --enable-openssl"
 		CFLAGS="$CFLAGS -I/c/OpenSSL-$TEST/include"
