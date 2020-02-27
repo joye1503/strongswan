@@ -370,20 +370,19 @@ if test "$1" = "deps"; then
 		pkg install -y automake autoconf libtool pkgconf && \
 		pkg install -y bison flex gperf gettext $DEPS
 		;;
-	linux|*)
-		$sudo apt-get update -qq && \
-		$sudo apt-get install -qq bison flex gperf gettext $DEPS
+	linux)
+		sudo apt-get update -qq && \
+		sudo apt-get install -qq bison flex gperf gettext $DEPS
 		;;
-
 	esac
-        case "$APPVEYOR" in
-        true)
-            sudo apt-get install bison flex gperf gettext $DEPS
-            ;;
-        True)
-            pacman --noconfirm -Sy bison flex gperf gettext mingw-w64-x86_64-gmp gmp ccache
-            ;;
-        esac
+    case "$APPVEYOR" in
+    true)
+        sudo apt-get install bison flex gperf gettext $DEPS
+        ;;
+    True)
+        pacman --noconfirm -Sy bison flex gperf gettext mingw-w64-x86_64-gmp gmp ccache
+        ;;
+    esac
 	exit $?
 fi
 
