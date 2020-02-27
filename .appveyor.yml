@@ -63,9 +63,6 @@ matrix:
     - image: Visual Studio 2017
       TEST: all
       MONOLITHIC: no
-    - image: Visual Studio 2017
-      TEST: printf-builtin
-      MONOLITHIC: yes
 
 # Don't build if it's a push with a tag
 skip_tags: true
