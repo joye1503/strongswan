@@ -42,8 +42,6 @@ environment:
       MONOLITHIC: yes
     - TEST: wintun
       MONOLITHIC: yes
-    - TEST: printf-builtin
-      MONOLITHIC: yes
 
 matrix:
   fast_finish: true
