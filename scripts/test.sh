@@ -377,7 +377,7 @@ if test "$1" = "deps"; then
 	esac
     case "$APPVEYOR" in
     true)
-        sudo apt-get install bison flex gperf gettext $DEPS
+        sudo apt-get install -qq bison flex gperf gettext $DEPS
         ;;
     True)
         pacman --noconfirm -Sy bison flex gperf gettext mingw-w64-x86_64-gmp gmp ccache
