@@ -164,9 +164,7 @@ all|coverage|sonarcloud)
 	DEPS="$DEPS libcurl4-gnutls-dev libsoup2.4-dev libunbound-dev libldns-dev
 		  libmysqlclient-dev libsqlite3-dev clearsilver-dev libfcgi-dev
 		  libpcsclite-dev libpam0g-dev binutils-dev libnm-dev libgcrypt20-dev
-		  libjson-c-dev iptables-dev python-pip libtspi-dev libsystemd-dev
-		  openldap-client
-		  "
+		  libjson-c-dev iptables-dev python-pip libtspi-dev libsystemd-dev"
 	PYDEPS="tox"
 	if test "$1" = "deps"; then
 		build_botan
