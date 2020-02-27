@@ -5,7 +5,6 @@ image:
   - Ubuntu
 
 cache:
-  - C:\projects\strongswan -> /
   - C:\CCACHE
   - /var/cache/pacman/pkg/
 
