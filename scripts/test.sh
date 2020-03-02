@@ -165,7 +165,7 @@ all|coverage|sonarcloud)
 		  libmysqlclient-dev libsqlite3-dev clearsilver-dev libfcgi-dev
 		  libpcsclite-dev libpam0g-dev binutils-dev libnm-dev libgcrypt20-dev
 		  libjson-c-dev iptables-dev python-pip libtspi-dev libsystemd-dev
-		  libldap2-dev python-setuptools"
+		  libldap2-dev python-setuptools python3-setuptools"
 	PYDEPS="tox"
 	if test "$1" = "deps"; then
 		build_botan
