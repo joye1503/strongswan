@@ -85,6 +85,33 @@ build_tss2()
 	cd -
 }
 
+install_deps() {
+	# configure.ac checks against the easy_install file in $PATH, which is only provided by the PIP egg, not the Ubuntu package!
+	case "$TRAVIS_OS_NAME" in
+	osx)
+		brew update && \
+		brew install $DEPS
+		;;
+	freebsd)
+		pkg install -y automake autoconf libtool pkgconf && \
+		pkg install -y bison flex gperf gettext $DEPS
+		;;
+	linux)
+		sudo apt-get update -qq && \
+		sudo apt-get install -qq bison flex gperf gettext $DEPS
+		;;
+	esac
+
+    case "$APPVEYOR" in
+    true)
+        sudo apt-get install -qq bison flex gperf gettext $DEPS
+        ;;
+    True)
+        pacman --noconfirm -Sy bison flex gperf gettext mingw-w64-x86_64-gmp gmp ccache
+        ;;
+    esac
+}
+
 : ${TRAVIS_BUILD_DIR=$PWD}
 : ${DEPS_BUILD_DIR=$TRAVIS_BUILD_DIR/..}
 : ${DEPS_PREFIX=/usr/local}
@@ -127,6 +154,7 @@ botan)
 	# currently required)
 	DEPS=""
 	if test "$1" = "deps"; then
+		install_deps
 		build_botan
 	fi
 	;;
@@ -136,6 +164,7 @@ wolfssl)
 	# build with custom options to enable all the features the plugin supports
 	DEPS=""
 	if test "$1" = "deps"; then
+		install_deps
 		build_wolfssl
 	fi
 	;;
@@ -162,12 +191,14 @@ all|coverage|sonarcloud)
 		DEPS="$DEPS lcov"
 	fi
 	DEPS="$DEPS libcurl4-gnutls-dev libsoup2.4-dev libunbound-dev libldns-dev
-		  libmysqlclient-dev libsqlite3-dev clearsilver-dev libfcgi-dev
+		  libmariadbclient-dev libsqlite3-dev clearsilver-dev libfcgi-dev
 		  libpcsclite-dev libpam0g-dev binutils-dev libnm-dev libgcrypt20-dev
 		  libjson-c-dev iptables-dev python-pip libtspi-dev libsystemd-dev
-		  libldap2-dev python-setuptools python3-setuptools"
+		  libldap2-dev curl libssl-dev ruby systemd libtool autoconf automake
+		  python-setuptools"
 	PYDEPS="tox"
 	if test "$1" = "deps"; then
+		install_deps
 		build_botan
 		build_wolfssl
 		build_tss2
@@ -361,31 +392,7 @@ lgtm)
 	;;
 esac
 
-if test "$1" = "deps"; then
-	case "$TRAVIS_OS_NAME" in
-	osx)
-		brew update && \
-		brew install $DEPS
-		;;
-	freebsd)
-		pkg install -y automake autoconf libtool pkgconf && \
-		pkg install -y bison flex gperf gettext $DEPS
-		;;
-	linux)
-		sudo apt-get update -qq && \
-		sudo apt-get install -qq bison flex gperf gettext $DEPS
-		;;
-	esac
-    case "$APPVEYOR" in
-    true)
-        sudo apt-get install -qq bison flex gperf gettext $DEPS
-        ;;
-    True)
-        pacman --noconfirm -Sy bison flex gperf gettext mingw-w64-x86_64-gmp gmp ccache
-        ;;
-    esac
-	exit $?
-fi
+install_deps
 
 if test "$1" = "pydeps"; then
 	test -z "$PYDEPS" || pip -q install --user $PYDEPS
