@@ -577,6 +577,7 @@ METHOD(tun_device_t, destroy, void,
 	free(this);
 }
 
+#ifdef __WIN32__
 /**
  * Destroy the tun device
  */
@@ -626,6 +627,9 @@ static bool search_interfaces(TCHAR *GUID)
         }
         return InterfaceList;
 }
+
+#endif  /* __WIN32__ */
+
 static bool init_tun(private_tun_device_t *this, const char *name_tmpl)
 {
 #ifdef __WIN32__
