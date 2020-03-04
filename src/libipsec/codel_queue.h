@@ -60,7 +60,7 @@ struct codel_queue_t {
 /**
  * Create a codel_queue instance.
  *
- * @param destroy_offset			offset of destructor in queued packet objects
+ * @param destroy_offset		offset of destructor in queued packet objects
  * @param mtu				maximum transfer unit of queue link
  */
 codel_queue_t *codel_queue_create(int destroy_offset, u_int mtu);
