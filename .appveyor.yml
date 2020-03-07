@@ -7,6 +7,7 @@ image:
 cache:
   - C:\CCACHE
   - /var/cache/pacman/pkg/
+  - /home/appveyor/.ccache
 
 environment:
   global:
