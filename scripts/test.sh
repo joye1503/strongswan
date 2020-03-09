@@ -112,7 +112,7 @@ install_deps() {
     esac
 }
 
-appveyor_set_vars {
+appveyor_set_vars() {
     if test "${APPVEYOR}" == true -o "${APPVEYOR}" == True
     then
         declare -g $TRAVIS_OS_NAME=linux TRAVIS_COMMIT="${APPVEYOR_REPO_COMMIT}" \
