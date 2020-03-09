@@ -112,9 +112,18 @@ install_deps() {
     esac
 }
 
+appveyor_set_vars {
+    if test "${APPVEYOR}" == true -o "${APPVEYOR}" == True
+    then
+        declare -g $TRAVIS_OS_NAME=linux TRAVIS_COMMIT="${APPVEYOR_REPO_COMMIT}" \
+            TRAVIS_BUILD_NUMBER="${APPVEYOR_BUILD_NUMBER}" 
+    fi
+}
 : ${TRAVIS_BUILD_DIR=$PWD}
 : ${DEPS_BUILD_DIR=$TRAVIS_BUILD_DIR/..}
 : ${DEPS_PREFIX=/usr/local}
+
+appveyor_set_vars
 
 TARGET=check
 
@@ -446,14 +455,16 @@ apidoc)
 	rm make.warnings
 	;;
 sonarcloud)
-	sonar-scanner \
-		-Dsonar.projectKey=strongswan \
-		-Dsonar.projectVersion=$(git describe)+${TRAVIS_BUILD_NUMBER} \
-		-Dsonar.sources=. \
-		-Dsonar.cfamily.threads=2 \
-		-Dsonar.cfamily.cache.enabled=true \
-		-Dsonar.cfamily.cache.path=$HOME/.sonar-cache \
-		-Dsonar.cfamily.build-wrapper-output=bw-output || exit $?
+    sonar-scanner \
+        -Dsonar.organization=contauro-ag \
+        -Dsonar.projectKey=contauro-ag_strongswan \
+        -Dsonar.projectVersion=$(git describe)+${TRAVIS_BUILD_NUMBER} \
+        -Dsonar.sources=. \
+        -Dsonar.cfamily.threads=2 \
+        -Dsonar.cfamily.cache.enabled=true \
+        -Dsonar.host.url=https://sonarcloud.io \
+        -Dsonar.cfamily.build-wrapper-output=bw-output \
+        -Dsonar.login=${SONARCLOUD_LOGIN}  || exit $?
 	rm -r bw-output .scannerwork
 	;;
 *)

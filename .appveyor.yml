@@ -16,6 +16,9 @@ environment:
     TZ: Europe/Zurich
     arch: x86_64
     bits: 64
+    SONARCLOUD_LOGIN:
+        secure: NzuE/IvDpmbBdfJWPHeBldaP010Cp6VJoO6maZ+ucWJlJtag1MeUbfdHrlHF9SnT
+
   matrix:
     - TEST: all
     - TEST: all
@@ -44,6 +47,8 @@ environment:
       MONOLITHIC: yes
     - TEST: printf-builtin
       MONOLITHIC: yes
+    - TEST: sonarcloud
+      MONOLITHIC: no
 
 matrix:
   fast_finish: true
@@ -62,6 +67,9 @@ matrix:
       TEST: coverage
     - image: Visual Studio 2017
       TEST: all
+      MONOLITHIC: no
+    - image: Visual Studio 2017
+      TEST: sonarcloud
       MONOLITHIC: no
 
 # Don't build if it's a push with a tag
