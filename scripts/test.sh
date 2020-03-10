@@ -113,7 +113,7 @@ install_deps() {
 }
 
 appveyor_set_vars() {
-    if test "${APPVEYOR}" == true -o "${APPVEYOR}" == True
+    if test "${APPVEYOR}" = true -o "${APPVEYOR}" = True
     then
         declare -g $TRAVIS_OS_NAME=linux TRAVIS_COMMIT="${APPVEYOR_REPO_COMMIT}" \
             TRAVIS_BUILD_NUMBER="${APPVEYOR_BUILD_NUMBER}" 
@@ -224,7 +224,7 @@ win*)
 			--enable-imc-os --enable-imv-os --enable-tnc-imv --enable-tnc-imc
 			--enable-pki --enable-swanctl --enable-socket-win
 			--enable-kernel-iph --enable-kernel-wfp --enable-winhttp"
-	if test "$TARGET" == "wintun"; then
+	if test "$TARGET" = "wintun"; then
 		CONFIG="$CONFIG --enable-wintun --enable-kernel-libipsec --enable-libipsec"
 	fi
 	# no make check for Windows binaries unless we run on a windows host
