@@ -88,24 +88,24 @@ build_tss2()
 
 install_deps() {
 	# configure.ac checks against the easy_install file in $PATH, which is only provided by the PIP egg, not the Ubuntu package!
-	case "$TRAVIS_OS_NAME" in
+	case "${TRAVIS_OS_NAME}" in
 	osx)
 		brew update && \
-		brew install $DEPS
+		brew install ${DEPS}
 		;;
 	freebsd)
 		pkg install -y automake autoconf libtool pkgconf && \
-		pkg install -y bison flex gperf gettext $DEPS
+		pkg install -y bison flex gperf gettext ${DEPS}
 		;;
 	linux)
 		sudo apt-get update -qq && \
-		sudo apt-get install -qq bison flex gperf gettext $DEPS
+		sudo apt-get install -qq bison flex gperf gettext ${DEPS}
 		;;
 	esac
 
-    case "$APPVEYOR" in
+    case "${APPVEYOR}" in
     true)
-        sudo apt-get install -qq bison flex gperf gettext $DEPS
+        sudo apt-get install -qq bison flex gperf gettext ${DEPS}
         ;;
     True)
         pacman --noconfirm -Sy bison flex gperf gettext mingw-w64-x86_64-gmp gmp ccache
