@@ -128,7 +128,7 @@ appveyor_set_vars
 
 TARGET=check
 
-declare -g DEPS="libgmp-dev ccache"
+declare -g DEPS="libgmp-dev ccache gettext libtool"
 
 CFLAGS="-g -O2 -Wall -Wno-format -Wno-format-security -Wno-pointer-sign -Werror"
 
