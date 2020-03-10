@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # Build script for Travis CI
 
 build_botan()
