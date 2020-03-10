@@ -1,5 +1,6 @@
 #!/bin/bash
 # Build script for Travis CI
+set -x
 
 build_botan()
 {
