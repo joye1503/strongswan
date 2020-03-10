@@ -88,6 +88,7 @@ build_tss2()
 
 install_deps() {
 	# configure.ac checks against the easy_install file in $PATH, which is only provided by the PIP egg, not the Ubuntu package!
+	:${DEPS:=FOO}
 	case "${TRAVIS_OS_NAME}" in
 	osx)
 		brew update && \
