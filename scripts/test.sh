@@ -131,6 +131,8 @@ TARGET=check
 
 declare -g DEPS="libgmp-dev ccache gettext libtool"
 
+install_deps
+
 CFLAGS="-g -O2 -Wall -Wno-format -Wno-format-security -Wno-pointer-sign -Werror"
 
 #True is Windows, true is Ubuntu
