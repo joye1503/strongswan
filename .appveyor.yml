@@ -41,7 +41,7 @@ environment:
       LEAK_DETECTIVE: yes
     - TEST: apidoc
       MONOLITHIC: no
-      APPVEYOR_BUILD_WORKER_IMAGE: Linux Ubuntu 18.04 full build-essential build-dep
+      APPVEYOR_BUILD_WORKER_IMAGE: appveyor/build-image:minimal-ubuntu-18.04
     - TEST: win64
       MONOLITHIC: yes
     - TEST: wintun
@@ -49,7 +49,7 @@ environment:
     - TEST: printf-builtin
       MONOLITHIC: yes
     - TEST: sonarcloud
-      APPVEYOR_BUILD_WORKER_IMAGE: Linux Ubuntu 18.04 full build-essential build-dep
+      APPVEYOR_BUILD_WORKER_IMAGE: appveyor/build-image:minimal-ubuntu-18.04
       MONOLITHIC: no
 
 matrix:
