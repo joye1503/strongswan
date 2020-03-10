@@ -113,7 +113,7 @@ install_deps() {
 }
 
 appveyor_set_vars() {
-    if test "${APPVEYOR}" = true -o "${APPVEYOR}" = True
+    if test -n "${APPVEYOR}"
     then
         declare -g $TRAVIS_OS_NAME=linux TRAVIS_COMMIT="${APPVEYOR_REPO_COMMIT}" \
             TRAVIS_BUILD_NUMBER="${APPVEYOR_BUILD_NUMBER}" 
