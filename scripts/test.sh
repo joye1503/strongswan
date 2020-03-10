@@ -148,12 +148,12 @@ default)
 openssl*)
 	CONFIG="--disable-defaults --enable-pki --enable-openssl --enable-pem"
 	export TESTS_PLUGINS="test-vectors pem openssl!"
-	DEPS="libssl-dev"
+	DEPS="$DEPS libssl-dev"
 	;;
 gcrypt)
 	CONFIG="--disable-defaults --enable-pki --enable-gcrypt --enable-pkcs1"
 	export TESTS_PLUGINS="test-vectors pkcs1 gcrypt!"
-	DEPS="libgcrypt11-dev"
+	DEPS="$DEPS libgcrypt11-dev"
 	;;
 botan)
 	CONFIG="--disable-defaults --enable-pki --enable-botan --enable-pem"
@@ -162,7 +162,6 @@ botan)
 	# the current master until 2.8.0 is released and then probably switch to
 	# that unless we need newer features (at least 2.7.0 plus PKCS#1 patch is
 	# currently required)
-	DEPS=""
 	if test "$1" = "deps"; then
 		install_deps
 		build_botan
@@ -172,7 +171,6 @@ wolfssl)
 	CONFIG="--disable-defaults --enable-pki --enable-wolfssl --enable-pem"
 	export TESTS_PLUGINS="test-vectors pem wolfssl!"
 	# build with custom options to enable all the features the plugin supports
-	DEPS=""
 	if test "$1" = "deps"; then
 		install_deps
 		build_wolfssl
