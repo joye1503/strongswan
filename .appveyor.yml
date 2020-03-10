@@ -21,22 +21,20 @@ environment:
 
   matrix:
     - TEST: all
+      APPVEYOR_BUILD_WORKER_IMAGE: appveyor/build-image:minimal-ubuntu-18.04
     - TEST: all
       MONOLITHIC: yes
     - TEST: coverage
-    - TEST: all
-      LEAK_DETECTIVE: yes
-    - TEST: all
-    - TEST: all
-      MONOLITHIC: yes
-    - TEST: coverage
+      APPVEYOR_BUILD_WORKER_IMAGE: appveyor/build-image:minimal-ubuntu-18.04
     - TEST: all
       LEAK_DETECTIVE: yes
     - TEST: botan
     - TEST: openssl
+      APPVEYOR_BUILD_WORKER_IMAGE: appveyor/build-image:minimal-ubuntu-18.04
     - TEST: openssl
       LEAK_DETECTIVE: yes
     - TEST: gcrypt
+      APPVEYOR_BUILD_WORKER_IMAGE: appveyor/build-image:minimal-ubuntu-18.04
     - TEST: gcrypt
       LEAK_DETECTIVE: yes
     - TEST: apidoc
