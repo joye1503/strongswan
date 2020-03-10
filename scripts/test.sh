@@ -106,7 +106,7 @@ install_deps() {
 
     case "${APPVEYOR}" in
     true)
-        sudo apt-get install -qq bison flex gperf gettext pkgconf pkg-config ${DEPS}
+        sudo apt-get install -qq bison flex gperf gettext pkg-config ${DEPS}
         ;;
     True)
         pacman --noconfirm -Sy bison flex gperf gettext mingw-w64-x86_64-gmp gmp ccache
@@ -130,8 +130,6 @@ appveyor_set_vars
 TARGET=check
 
 declare -g DEPS="libgmp-dev ccache gettext libtool"
-
-install_deps
 
 CFLAGS="-g -O2 -Wall -Wno-format -Wno-format-security -Wno-pointer-sign -Werror"
 
