@@ -51,7 +51,6 @@ environment:
       MONOLITHIC: no
 
 matrix:
-  fast_finish: true
   exclude:
     - image: Ubuntu
       TEST: wintun
