@@ -328,7 +328,7 @@ dist)
 	TARGET=distcheck
 	;;
 apidoc)
-	DEPS="gettext doxygen"
+	DEPS="gettext doxygen libtool"
 	CONFIG="--disable-defaults"
 	TARGET=apidoc
 	;;
