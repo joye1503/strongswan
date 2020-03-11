@@ -417,7 +417,7 @@ CONFIG="$CONFIG
 
 echo "$ ./autogen.sh"
 ./autogen.sh || true
-automake --install-missing || true
+automake --add-missing || true
 ./autogen.sh || exit $?
 echo "$ CC=$CC CFLAGS=\"$CFLAGS\" ./configure $CONFIG"
 CC="$CC" CFLAGS="$CFLAGS" ./configure $CONFIG || exit $?
