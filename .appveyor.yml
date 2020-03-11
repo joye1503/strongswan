@@ -18,6 +18,7 @@ environment:
     bits: 64
     SONARCLOUD_LOGIN:
         secure: NzuE/IvDpmbBdfJWPHeBldaP010Cp6VJoO6maZ+ucWJlJtag1MeUbfdHrlHF9SnT
+    DEPS_BUILD_DIR: $HOME
 
   matrix:
     - TEST: all
