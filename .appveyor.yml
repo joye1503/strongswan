@@ -89,6 +89,8 @@ for:
   test_script:
     - ./scripts/test.sh
   build_cloud: vpn_project_appveyor_host_agent_ci Docker
+  environment:
+    APPVEYOR_BUILD_WORKER_IMAGE: appveyor/build-image:minimal-ubuntu-18.04
 
 - matrix:
     only:
