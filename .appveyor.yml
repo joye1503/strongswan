@@ -79,7 +79,6 @@ for:
   build_script:
     - ./scripts/test.sh deps
     - ./scripts/test.sh pydeps
-    - sudo sysctl -w net.ipv6.conf.all.disable_ipv6=0 || true
   test_script:
     - ./scripts/test.sh
   build_cloud: vpn_project_appveyor_host_agent_ci Docker
