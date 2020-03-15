@@ -9,28 +9,29 @@ build_botan()
 	BOTAN_DIR=$DEPS_BUILD_DIR/botan
 
 	if test -d "$BOTAN_DIR"; then
-		return
+		cd $BOTAN_DIR
+	else
+		echo "$ build_botan()"
+
+		# if the leak detective is enabled we have to disable threading support
+		# (used for std::async) as that causes invalid frees somehow, the
+		# locking allocator causes a static leak via the first function that
+		# references it (e.g. crypter or hasher), so we disable that too
+		if test "$LEAK_DETECTIVE" = "yes"; then
+			BOTAN_CONFIG="--without-os-features=threads
+						  --disable-modules=locking_allocator"
+		fi
+		# disable some larger modules we don't need for the tests
+		BOTAN_CONFIG="$BOTAN_CONFIG --disable-modules=pkcs11,tls,x509,xmss
+					  --prefix=$DEPS_PREFIX"
+
+		git clone https://github.com/randombit/botan.git $BOTAN_DIR &&
+		cd $BOTAN_DIR &&
+		git checkout -qf $BOTAN_REV &&
+		python ./configure.py --amalgamation $BOTAN_CONFIG &&
+		make -j4 libs >/dev/null
 	fi
 
-	echo "$ build_botan()"
-
-	# if the leak detective is enabled we have to disable threading support
-	# (used for std::async) as that causes invalid frees somehow, the
-	# locking allocator causes a static leak via the first function that
-	# references it (e.g. crypter or hasher), so we disable that too
-	if test "$LEAK_DETECTIVE" = "yes"; then
-		BOTAN_CONFIG="--without-os-features=threads
-					  --disable-modules=locking_allocator"
-	fi
-	# disable some larger modules we don't need for the tests
-	BOTAN_CONFIG="$BOTAN_CONFIG --disable-modules=pkcs11,tls,x509,xmss
-				  --prefix=$DEPS_PREFIX"
-
-	git clone https://github.com/randombit/botan.git $BOTAN_DIR &&
-	cd $BOTAN_DIR &&
-	git checkout -qf $BOTAN_REV &&
-	python ./configure.py --amalgamation $BOTAN_CONFIG &&
-	make -j4 libs >/dev/null &&
 	$sudo make install >/dev/null &&
 	$sudo ldconfig || exit $?
 	cd -
@@ -42,23 +43,24 @@ build_wolfssl()
 	WOLFSSL_DIR=$DEPS_BUILD_DIR/wolfssl
 
 	if test -d "$WOLFSSL_DIR"; then
-		return
+		cd $WOLFSSL_DIR
+	else
+		echo "$ build_wolfssl()"
+
+		WOLFSSL_CFLAGS="-DWOLFSSL_PUBLIC_MP -DWOLFSSL_DES_ECB"
+		WOLFSSL_CONFIG="--prefix=$DEPS_PREFIX
+						--enable-keygen --enable-rsapss --enable-aesccm
+						--enable-aesctr --enable-des3 --enable-camellia
+						--enable-curve25519 --enable-ed25519"
+
+		git clone https://github.com/wolfSSL/wolfssl.git $WOLFSSL_DIR &&
+		cd $WOLFSSL_DIR &&
+		git checkout -qf $WOLFSSL_REV &&
+		./autogen.sh &&
+		./configure C_EXTRA_FLAGS="$WOLFSSL_CFLAGS" $WOLFSSL_CONFIG &&
+		make -j4 >/dev/null		
 	fi
 
-	echo "$ build_wolfssl()"
-
-	WOLFSSL_CFLAGS="-DWOLFSSL_PUBLIC_MP -DWOLFSSL_DES_ECB"
-	WOLFSSL_CONFIG="--prefix=$DEPS_PREFIX
-					--enable-keygen --enable-rsapss --enable-aesccm
-					--enable-aesctr --enable-des3 --enable-camellia
-					--enable-curve25519 --enable-ed25519"
-
-	git clone https://github.com/wolfSSL/wolfssl.git $WOLFSSL_DIR &&
-	cd $WOLFSSL_DIR &&
-	git checkout -qf $WOLFSSL_REV &&
-	./autogen.sh &&
-	./configure C_EXTRA_FLAGS="$WOLFSSL_CFLAGS" $WOLFSSL_CONFIG &&
-	make -j4 >/dev/null &&
 	sudo make install >/dev/null &&
 	sudo ldconfig || exit $?
 	cd -
@@ -72,15 +74,17 @@ build_tss2()
 	TSS2_SRC=https://github.com/tpm2-software/tpm2-tss/releases/download/$TSS2_REV/$TSS2_PKG.tar.gz
 
 	if test -d "$TSS2_DIR"; then
-		return
+		# install tss2
+		cd "$TSS2_DIR"
+	else
+		echo "$ build_tss2()"
+
+		curl -L $TSS2_SRC | tar xz -C $DEPS_BUILD_DIR &&
+		cd $TSS2_DIR &&
+		./configure --prefix=$DEPS_PREFIX --disable-doxygen-doc &&
+		make -j4 >/dev/null
 	fi
 
-	echo "$ build_tss2()"
-
-	curl -L $TSS2_SRC | tar xz -C $DEPS_BUILD_DIR &&
-	cd $TSS2_DIR &&
-	./configure --prefix=$DEPS_PREFIX --disable-doxygen-doc &&
-	make -j4 >/dev/null &&
 	sudo make install >/dev/null &&
 	sudo ldconfig || exit $?
 	cd -
