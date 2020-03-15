@@ -9,6 +9,7 @@ cache:
   - /var/cache/pacman/pkg/
   - /home/appveyor/.ccache
   - dependencies -> scripts/test.sh
+  - /var/cache/apt/archives
 
 environment:
   global:
