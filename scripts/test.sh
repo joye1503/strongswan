@@ -522,7 +522,7 @@ sonarcloud)
         -Dsonar.cfamily.cache.enabled=true \
         -Dsonar.host.url=https://sonarcloud.io \
         -Dsonar.cfamily.build-wrapper-output=bw-output \
-        -Dsonar.login=${SONARCLOUD_LOGIN} --illegal-access=warn || exit $?
+        -Dsonar.login=${SONARCLOUD_LOGIN}  || exit $?
 	rm -r bw-output .scannerwork
 	;;
 *)
