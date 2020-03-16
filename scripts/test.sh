@@ -32,6 +32,7 @@ build_botan()
 		make -j4 libs >/dev/null
 	fi
 
+	ret=$?
 	if [ $ret != 0 ]
 	then
 		exit $ret
