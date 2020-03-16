@@ -521,6 +521,7 @@ sonarcloud)
         -Dsonar.cfamily.threads=2 \
         -Dsonar.cfamily.cache.enabled=true \
         -Dsonar.host.url=https://sonarcloud.io \
+        -Dsonar.cfamily.cache.path=$HOME/.sonar-cache \
         -Dsonar.cfamily.build-wrapper-output=bw-output \
         -Dsonar.login=${SONARCLOUD_LOGIN}  || exit $?
 	rm -r bw-output .scannerwork
