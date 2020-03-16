@@ -95,6 +95,12 @@ build_tss2()
 		make -j4 >/dev/null
 	fi
 
+	ret=$?
+	if [ $ret != 0 ]
+	then
+		exit $ret
+	fi
+
 	sudo make install >/dev/null &&
 	sudo ldconfig || exit $?
 	cd -
