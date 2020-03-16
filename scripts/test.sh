@@ -428,6 +428,8 @@ CC="$CC" CFLAGS="$CFLAGS" ./configure $CONFIG || exit $?
 
 case "$TEST" in
 apidoc)
+	#disable verbosity or -x output will be written to make.warnings
+	set +x
 	exec 2>make.warnings
 	;;
 *)
