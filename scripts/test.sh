@@ -32,6 +32,10 @@ build_botan()
 		make -j4 libs >/dev/null
 	fi
 
+	if [ $ret != 0 ]
+	then
+		exit $ret
+	fi
 	$sudo make install >/dev/null &&
 	$sudo ldconfig || exit $?
 	cd -
@@ -61,6 +65,11 @@ build_wolfssl()
 		make -j4 >/dev/null		
 	fi
 
+	ret=$?
+	if [ $ret != 0 ]
+	then
+		exit $ret
+	fi
 	sudo make install >/dev/null &&
 	sudo ldconfig || exit $?
 	cd -
