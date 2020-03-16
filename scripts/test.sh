@@ -421,7 +421,11 @@ lgtm)
 	;;
 esac
 
-install_deps
+if [ "$1" = "deps " ]; then
+	install_deps
+	exit 0
+fi
+
 
 if test "$1" = "pydeps"; then
 	test -z "$PYDEPS" || pip -q install --user $PYDEPS
