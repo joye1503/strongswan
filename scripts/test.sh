@@ -106,6 +106,18 @@ build_tss2()
 	cd -
 }
 
+fix_timezone() {
+	if test -e /etc/timezone ; then
+		return 0
+	fi
+	if test -n "$TZ"; then
+		echo "TZ var not set. Defaulting to UTC timezone." >&2
+	fi
+: ${TZ=UTC}
+	echo "$TZ" > /etc/timezone
+	dpkg-reconfigure -f noninteractive tzdata
+}
+
 install_deps() {
 	# configure.ac checks against the easy_install file in $PATH, which is only provided by the PIP egg, not the Ubuntu package!
 	: ${DEPS:=FOO}
@@ -423,6 +435,7 @@ esac
 
 if [ "$1" = "deps " ]; then
 	install_deps
+	fix_timezone
 	exit 0
 fi
 
