@@ -149,7 +149,7 @@ appveyor_set_vars
 
 TARGET=check
 
-declare -g DEPS="libgmp-dev ccache gettext libtool"
+declare -g DEPS="libgmp-dev ccache gettext libtool tzdata"
 
 CFLAGS="-g -O2 -Wall -Wno-format -Wno-format-security -Wno-pointer-sign -Werror"
 
