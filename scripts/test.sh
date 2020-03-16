@@ -172,6 +172,7 @@ if test "$APPVEYOR" = "True"; then
 else
     export sudo="sudo"
 fi
+export DEBIAN_FRONTEND=noninteractive
 
 case "$TEST" in
 default)
