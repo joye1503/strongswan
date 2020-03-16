@@ -516,7 +516,7 @@ sonarcloud)
     sonar-scanner \
         -Dsonar.organization=contauro-ag \
         -Dsonar.projectKey=contauro-ag_strongswan \
-        -Dsonar.projectVersion=$(git describe)+${TRAVIS_BUILD_NUMBER} \
+        -Dsonar.projectVersion="$(git describe)+${TRAVIS_BUILD_NUMBER}" \
         -Dsonar.sources=. \
         -Dsonar.cfamily.threads=2 \
         -Dsonar.cfamily.cache.enabled=true \
