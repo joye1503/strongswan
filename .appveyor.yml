@@ -90,7 +90,7 @@ for:
       - image: Visual Studio 2017
   cache:
     - C:\CCACHE
-    - C:/msys64/var/cache/pacman/pkg/
+    - C:\msys64\var\cache\pacman\pkg
   build_script:
     - '%MSYS_SH% --login -c ". /etc/profile && cd $APPVEYOR_BUILD_FOLDER && ./scripts/test.sh deps"'
   test_script:
