@@ -4,13 +4,6 @@ image:
   - Visual Studio 2017
   - Ubuntu
 
-cache:
-  - C:\CCACHE
-  - /var/cache/pacman/pkg/
-  - /home/appveyor/.ccache
-  - dependencies -> scripts/test.sh
-  - /var/cache/apt/archives
-
 environment:
   global:
     MONOLITHIC: no
@@ -75,6 +68,11 @@ for:
 - matrix:
     only:
       - image: Ubuntu
+  cache:
+    - /home/appveyor/.ccache
+    - dependencies -> scripts/test.sh
+    - /var/cache/apt/archives
+
   install:
     - sudo apt-get update -qq
     - sudo apt-get install -qq bison flex gperf gettext libgmp-dev libssl-dev libgcrypt11-dev
@@ -90,6 +88,9 @@ for:
 - matrix:
     only:
       - image: Visual Studio 2017
+  cache:
+    - C:\CCACHE
+    - C:/msys64/var/cache/pacman/pkg/
   build_script:
     - '%MSYS_SH% --login -c ". /etc/profile && cd $APPVEYOR_BUILD_FOLDER && ./scripts/test.sh deps"'
   test_script:
