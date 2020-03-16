@@ -433,7 +433,7 @@ lgtm)
 	;;
 esac
 
-if [ "$1" = "deps " ]; then
+if [ "$1" = "deps" ]; then
 	install_deps
 	fix_timezone
 	exit 0
