@@ -523,8 +523,7 @@ sonarcloud)
         -Dsonar.host.url=https://sonarcloud.io \
         -Dsonar.cfamily.cache.path=$HOME/.sonar-cache \
         -Dsonar.cfamily.build-wrapper-output=bw-output \
-        -Dsonar.login=${SONARCLOUD_LOGIN} \
-        '-Dsonar.exclusions=src/frontends/android/**' || exit $?
+        -Dsonar.login=${SONARCLOUD_LOGIN}  || exit $?
 	rm -r bw-output .scannerwork
 	;;
 *)
