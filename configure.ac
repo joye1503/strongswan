@@ -19,7 +19,7 @@
 #  initialize & set some vars
 # ============================
 
-AC_INIT([strongSwan],[5.8.2])
+AC_INIT([strongSwan],[5.8.3dr1])
 AM_INIT_AUTOMAKE(m4_esyscmd([
 	echo tar-ustar
 	echo subdir-objects
@@ -1380,6 +1380,9 @@ AC_CACHE_CHECK(
 )
 if test "x$ss_cv_static_plugin_constructors" = xyes; then
 	static_plugin_constructors=true
+	if test "$PYTHON" = ":"; then
+		AC_MSG_FAILURE([Python is required to resolve plugin constructors statically])
+	fi
 fi
 
 # ===============================================
