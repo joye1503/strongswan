@@ -69,6 +69,7 @@ for:
     only:
       - image: Ubuntu
       - TEST: sonarcloud
+    clone_depth: 0
   cache:
     - /home/appveyor/.ccache
     - dependencies -> scripts/test.sh
@@ -89,8 +90,7 @@ for:
 - matrix:
     only:
       - image: Ubuntu
-  clone_depth: 50
-  cache:
+    cache:
     - /home/appveyor/.ccache
     - dependencies -> scripts/test.sh
     - /var/cache/apt/archives
@@ -110,7 +110,6 @@ for:
 - matrix:
     only:
       - image: Visual Studio 2017
-  clone_depth: 50
   cache:
     - C:\CCACHE
     - C:\msys64\var\cache\pacman\pkg
