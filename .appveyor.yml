@@ -90,10 +90,10 @@ for:
 - matrix:
     only:
       - image: Ubuntu
-    cache:
-    - /home/appveyor/.ccache
-    - dependencies -> scripts/test.sh
-    - /var/cache/apt/archives
+  cache:
+  - /home/appveyor/.ccache
+  - dependencies -> scripts/test.sh
+  - /var/cache/apt/archives
 
   install:
     - sudo apt-get update -qq
