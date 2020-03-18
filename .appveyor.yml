@@ -66,6 +66,28 @@ for:
 - matrix:
     only:
       - image: Ubuntu
+      - TEST: sonarcloud
+  cache:
+    - /home/appveyor/.ccache
+    - dependencies -> scripts/test.sh
+    - /var/cache/apt/archives
+
+  install:
+    - sudo apt-get update -qq
+    - sudo apt-get install -qq bison flex gperf gettext libgmp-dev libssl-dev libgcrypt11-dev
+  build_script:
+    - ./scripts/test.sh deps
+    - ./scripts/test.sh pydeps
+  test_script:
+    - ./scripts/test.sh
+  #build_cloud: 
+  environment:
+    APPVEYOR_BUILD_WORKER_IMAGE: appveyor/build-image:minimal-ubuntu-18.04
+
+- matrix:
+    only:
+      - image: Ubuntu
+  clone_depth: 50
   cache:
     - /home/appveyor/.ccache
     - dependencies -> scripts/test.sh
@@ -86,6 +108,7 @@ for:
 - matrix:
     only:
       - image: Visual Studio 2017
+  clone_depth: 50
   cache:
     - C:\CCACHE
     - C:\msys64\var\cache\pacman\pkg
