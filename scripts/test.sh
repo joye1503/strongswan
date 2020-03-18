@@ -523,6 +523,7 @@ sonarcloud)
         -Dsonar.host.url=https://sonarcloud.io \
         -Dsonar.cfamily.cache.path=$HOME/.sonar-cache \
         -Dsonar.cfamily.build-wrapper-output=bw-output \
+        "-Dsonar.branch.name=${APPVEYOR_REPO_BRANCH}" \
         -Dsonar.login=${SONARCLOUD_LOGIN}  || exit $?
 	rm -r bw-output .scannerwork
 	;;
