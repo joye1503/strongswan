@@ -113,9 +113,9 @@ fix_timezone() {
 	if test -n "$TZ"; then
 		echo "TZ var not set. Defaulting to UTC timezone." >&2
 	fi
-: ${TZ=UTC}
+	: ${TZ:=UTC}
 	echo "$TZ" > /etc/timezone
-	dpkg-reconfigure -f noninteractive tzdata
+	dpkg-reconfigure -f noninteractive tzdata || true
 }
 
 install_deps() {
