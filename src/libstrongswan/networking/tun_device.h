@@ -32,7 +32,9 @@
 #define TUN_RING_SIZE(TUN_RING, capacity) (sizeof(TUN_RING) + capacity + 0x10000)
 #define TUN_MAX_IP_PACKET_SIZE 0xFFFF
 #define PNP_INSTANCE_ID "{abcde}"
-#define WINTUN_COMPONENT_ID "wintun"
+#define WINTUN_COMPONENT_ID "Wintun"
+#define STRONGSWAN_WINTUN_INTERFACE_NAME "strongSwan VPN adapter"
+
 /* GUIDs from openvpn tun.c code */
 const static GUID GUID_DEVCLASS_NET = { 0x4d36e972L, 0xe325, 0x11ce, { 0xbf, 0xc1, 0x08, 0x00, 0x2b, 0xe1, 0x03, 0x18 } };
 #define TUN_IOCTL_REGISTER_RINGS 0xca6ce5c0
