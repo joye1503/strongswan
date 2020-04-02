@@ -26,6 +26,7 @@
 #include <networking/host.h>
 
 #ifdef __WIN32__
+#include <windows.h>
 /* capacity must be a power of two and between 128 kiB and 64 MiB */
 #define TUN_PACKET_ALIGNMENT 4
 #define TUN_RING_CAPACITY (64*1024*1024)
@@ -63,6 +64,19 @@ typedef struct _TUN_PACKET {
     ULONG Size;
     UCHAR Data[TUN_MAX_IP_PACKET_SIZE];
 } TUN_PACKET;
+
+#define WINDOWS_ERROR_MESSAGE_HELPER(DBG_LEVEL, DBG_GROUP, DBG_MESSAGE) ({ \
+	char message[512]; \
+	DWORD chars = FormatMessage( FORMAT_MESSAGE_FROM_SYSTEM | \
+                             FORMAT_MESSAGE_IGNORE_INSERTS, \
+                             NULL, \
+                             GetLastError(),\
+                             0, \
+                             message, \
+                             512, \
+                             NULL ); \
+	dbg(DBG_GROUP, DBG_LEVEL, DBG_MESSAGE, chars ? message : "Error message not found."); \
+})
 #endif
 typedef struct tun_device_t tun_device_t;
 
