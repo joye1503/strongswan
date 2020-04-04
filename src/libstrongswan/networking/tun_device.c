@@ -240,7 +240,8 @@ static chunk_t *pop_from_ring(TUN_RING *ring)
         /* TODO: If ring is over capacity wait until event is sent */
         chunk_t *chunk_packet;
         /* Ring is empty if head == tail */
-        if (ring_over_capacity(ring)) {
+        if (ring_over_capacity(ring))
+        {
             DBG0(DBG_LIB, "RING is over capacity!");
             return FALSE;
         }
@@ -499,7 +500,8 @@ METHOD(tun_device_t, write_packet, bool,
         private_tun_device_t *this, chunk_t packet)
 {
         write_to_ring(this->rings->Receive.Ring, packet);
-        if (this->rings->Receive.Ring->Alertable) {
+        if (this->rings->Receive.Ring->Alertable)
+        {
             SetEvent(this->rings->Receive.TailMoved);
         }
         return TRUE;
@@ -508,10 +510,12 @@ METHOD(tun_device_t, read_packet, bool,
         private_tun_device_t *this, chunk_t *packet)
 {
         chunk_t *next = pop_from_ring(this->rings->Send.Ring);
-        if (!next) {
+        if (!next)
+        {
                 this->rings->Send.Ring->Alertable = TRUE;
             next = pop_from_ring(this->rings->Send.Ring);
-            if (!next) {
+            if (!next)
+            {
                 WaitForSingleObject(this->rings->Send.TailMoved, INFINITE);
                 this->rings->Send.Ring->Alertable = FALSE;
             }
@@ -610,7 +614,8 @@ METHOD(tun_device_t, destroy, void,
 {
 #ifdef __WIN32
     /* https://docs.microsoft.com/en-us/windows/win32/api/setupapi/nf-setupapi-setupdiremovedevice */
-    if (this->tun_handle) {
+    if (this->tun_handle)
+    {
         /* dealloc tun device */
     }
 #else
@@ -645,7 +650,8 @@ METHOD(tun_device_t, destroy, void,
 /**
  * Destroy the tun device
  */
-static bool destroy_wintun(TCHAR *GUID) {
+static bool destroy_wintun(TCHAR *GUID)
+{
     return TRUE;
 }
 /**
@@ -669,8 +675,10 @@ static bool search_interfaces(TCHAR *GUID)
 {
         TCHAR *InterfaceList = NULL;
         DWORD RequiredBytes = 0;
-        while (TRUE) {
-            if (InterfaceList) {
+        while (TRUE)
+        {
+            if (InterfaceList)
+            {
                 free(InterfaceList);
                 InterfaceList = NULL;
             }
@@ -684,7 +692,8 @@ static bool search_interfaces(TCHAR *GUID)
                             InterfaceList, RequiredBytes, CM_GET_DEVICE_INTERFACE_LIST_PRESENT);
             if (Ret == CR_SUCCESS)
                 break;
-            if (Ret != CR_BUFFER_SMALL) {
+            if (Ret != CR_BUFFER_SMALL)
+            {
                 free(InterfaceList);
                 return NULL;
             }
