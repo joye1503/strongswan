@@ -654,6 +654,35 @@ static bool destroy_wintun(TCHAR *GUID)
 {
     return TRUE;
 }
+
+static char *windows_setupapi_get_friendly_name(HDEVINDO dev_info_set, SP_DEVINFO_DATA dev_info_data)
+{
+	char buffer[512];
+	memset(buffer, 0, sizeof(buffer));
+	size_t required_length;
+	if(!SetupDiGetDeviceInterfacePropertyW(
+		dev_info_set, dev_info_data,
+		DEVPKEY_DeviceInterface_FriendlyName,
+		DEVPROP_TYPE_STRING,
+		buffer,
+		sizeof(buffer),
+		&required_length,
+		0
+		))
+	{
+		/* Try hardware path instead */
+		SetupDiGetDeviceInterfacePropertyW(
+			dev_info_set, dev_info_data,
+			DEVPKEY_NAME,
+			DEVPROP_TYPE_STRING,
+			buffer,
+			sizeof(buffer),
+			&required_length,
+			0);
+		return buffer;
+	}
+	return buffer;
+}
 /**
  * Create the tun device and configure it as stored in the registry 
  */
