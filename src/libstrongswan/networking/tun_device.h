@@ -36,9 +36,9 @@
 /* for use with SetDeviceRegistryPropertyString */
 #define STRONGSWAN_WINTUN_INTERFACE_NAME "strongSwan VPN adapter"
 /* Randomly generated, globally unique GUID for the strongSwan VPN adapter*/
-const static GUID_WINTUN_STRONGSWAN = { 0x1f1f4dd1L, 0xe4d8, 0x487d, 0xb7d5, 0x24, 0x93, 0xb2, 0xce, 0x0c, 0x49 };
+const static GUID GUID_WINTUN_STRONGSWAN = { 0x1f1f4dd1L, 0xe4d8, 0x487d, { 0xb7, 0xd5, 0x24, 0x93, 0xb2, 0xce, 0x0c, 0x49 } };
 /* GUIDs from openvpn tun.c code */
-const static GUID GUID_DEVCLASS_NET = { 0x4d36e972L, 0xe325, 0x11ce, { 0xbf, 0xc1, 0x08, 0x00, 0x2b, 0xe1, 0x03, 0x18 } };
+const static GUID GUID GUID_DEVCLASS_NET = { 0x4d36e972L, 0xe325, 0x11ce, { 0xbf, 0xc1, 0x08, 0x00, 0x2b, 0xe1, 0x03, 0x18 } };
 #define TUN_IOCTL_REGISTER_RINGS 0xca6ce5c0
 #define TUN_PACKET_TRAILING_SIZE (sizeof(uint32_t) + ((TUN_MAX_IP_PACKET_SIZE + \
     (TUN_PACKET_ALIGNMENT - 1)) &~(TUN_PACKET_ALIGNMENT - 1)) - TUN_PACKET_ALIGNMENT)
