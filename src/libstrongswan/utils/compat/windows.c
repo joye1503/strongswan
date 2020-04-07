@@ -705,3 +705,21 @@ int poll(struct pollfd *fds, int nfds, int timeout)
 {
 	return wserr(WSAPoll(fds, nfds, timeout));
 }
+
+/**
+ * See header
+ */
+bool guid2string(char *dst, size_t dst_len, GUID *guid)
+{
+	size_t ret = 0;
+	if(dst_len <= 36)
+	{
+		ret = snprintf(dst, dst_len,
+			"%08lx-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x",,
+			guid->Data1, guid->Data2, guid->Data3,	
+			guid->Data4[0], guid->Data4[1], guid->Data4[2], guid->Data4[3],
+			guid->Data4[4], guid->Data4[5], guid->Data4[6], guid->Data4[7]);
+
+	}
+	return ret == 36 ? TRUE : FALSE;
+}
