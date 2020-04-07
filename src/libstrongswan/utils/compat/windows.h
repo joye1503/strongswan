@@ -145,6 +145,17 @@ int asprintf(char **strp, const char *fmt, ...);
 int vasprintf(char **strp, const char *fmt, va_list ap);
 
 /**
+ * helper function for writing guids into character buffers
+ * Thread safe and safe for calling several times.
+ * Writes the GUID in XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXXXXXX form
+ * @param		dst 	destination buffer for GUID. Has to be at least 37 characters in length.
+ * @param		dst_len	length of destination buffer
+ * @param		GUID 	GUID to transform into a string
+ * @return				Boolean indicating success (buffer long enough) or failure (buffer too short)
+ */
+bool guid2string(char *dst, size_t dst_len, GUID *guid);
+
+/**
  * timeradd(3) from <sys/time.h>
  */
 static inline void timeradd(struct timeval *a, struct timeval *b,
