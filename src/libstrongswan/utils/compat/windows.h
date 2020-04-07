@@ -274,6 +274,13 @@ void* dlsym(void *handle, const char *symbol);
 char* dlerror(void);
 
 /**
+ * thread save dlerror variant, uses caller supplied buffer
+ * @param	buf 	caller supplied buffer
+ * @param 	buf_len	length of caller supplied buffer
+ */
+void dlerror_mt(char *buf, size_t buf_len);
+
+/**
  * dlclose() from <dlfcn.h>
  */
 int dlclose(void *handle);

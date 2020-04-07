@@ -183,6 +183,30 @@ char* dlerror(void)
 }
 
 /**
+ * MT safe dlerror variant with caller supplied buffer
+ * See header
+ */
+void dlerror_mt(char *buf, size_t buf_len)
+{
+	char *pos;
+	DWORD err;
+
+	err = GetLastError();
+	if (FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+					  NULL, err, 0, buf, buf_len, NULL) > 0)
+	{
+		pos = strchr(buf, '\n');
+		if (pos)
+		{
+			*pos = '\0';
+		}
+	}
+	else
+	{
+		snprintf(buf, buf_len, "(%u)", err);
+	}	
+}
+/**
  * See header.
  */
 int dlclose(void *handle)
