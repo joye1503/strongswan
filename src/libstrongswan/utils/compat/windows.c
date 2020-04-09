@@ -761,7 +761,6 @@ bool registry_wait_get_value(HKEY key, void *caller_buf, size_t *caller_buf_len,
 			break;
 		}
 		/* Try to get value */
-
 		function_ret_query = RegQueryValueExA(key, reg_val_name, NULL, NULL, caller_buf, &caller_buf_len);
 		if(function_ret_query == ERROR_FILE_NOT_FOUND || function_ret_query == ERROR_PATH_NOT_FOUND)
 		{
@@ -782,8 +781,7 @@ bool registry_wait_get_value(HKEY key, void *caller_buf, size_t *caller_buf_len,
 				dlerror_mt(buf, sizeof(buf));
 				DBG1(DBG_LIB, "Failed to wait for event (WaitForSingleObjectEx(): %ld): %s", function_ret_wait, buf);
 				break;
-			} 
-
+			}
 		} else if (!function_ret_query) {
 			char buf[512];
 			dlerror_mt(buf, sizeof(buf));
