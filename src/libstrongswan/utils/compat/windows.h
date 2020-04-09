@@ -283,8 +283,9 @@ void dlerror_mt(char *buf, size_t buf_len);
 /**
  * helper function for getting registry values that may not exist yet
  * @param	key				registry key to query
- * @param	caller_buf 		caller supplied buffer for storing the queried value
- * @param	caller_buf_len	length of caller_buf in bytes
+ * @param	caller_buf 		caller supplied buffer for storing the queried value. Must be realloc()-atable
+ * @param	caller_buf_len	length of caller_buf in bytes.
+ 							Will contain the length of the written data in bytes after the function returns.
  * @param	reg_val_name	name of the value to query
  * @param	timeout			time (in ms) to wait for the registry key to appear
  * @return					TRUE if querying succeeded, FALSE if not
