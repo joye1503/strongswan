@@ -727,7 +727,7 @@ bool guid2string(char *dst, size_t dst_len, GUID *guid)
 /**
  * see header
  */
-bool registry_wait_get_value(HKEY key, void *caller_buf, size_t *caller_buf_len, char *reg_val_name,
+bool registry_wait_get_value(HKEY key, void *caller_buf, size_t *caller_buf_len, char *reg_val_name, DWORD *reg_val_type,
 			size_t timeout)
 {
 	/* timeout is in ms */
@@ -753,7 +753,7 @@ bool registry_wait_get_value(HKEY key, void *caller_buf, size_t *caller_buf_len,
 	while(TRUE)
 	{
 		/* Try to get value */
-		function_ret_query = RegQueryValueExA(key, reg_val_name, NULL, NULL, caller_buf, &caller_buf_len);
+		function_ret_query = RegQueryValueExA(key, reg_val_name, NULL, reg_val_type, caller_buf, caller_buf_len);
 		switch(function_ret_query)
 		{
 			case ERROR_FILE_NOT_FOUND:

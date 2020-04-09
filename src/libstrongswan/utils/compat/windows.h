@@ -287,11 +287,12 @@ void dlerror_mt(char *buf, size_t buf_len);
  * @param	caller_buf_len	length of caller_buf in bytes.
  							Will contain the length of the written data in bytes after the function returns.
  * @param	reg_val_name	name of the value to query
+ * @param	reg_val_type	Will contain the registry type of the value (MULTI_SZ, EXPAND_SZ, ...)
  * @param	timeout			time (in ms) to wait for the registry key to appear
  * @return					TRUE if querying succeeded, FALSE if not
  */
-bool registry_wait_get_value(HKEY key, void *caller_buf, size_t *caller_buf_len, char *reg_val_name,
-			size_t timeout)
+bool registry_wait_get_value(HKEY key, void *caller_buf, size_t *caller_buf_len, char *reg_val_name, DWORD *reg_val_type
+			size_t timeout);
 
 /**
  * dlclose() from <dlfcn.h>
