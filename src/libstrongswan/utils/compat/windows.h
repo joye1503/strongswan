@@ -281,6 +281,18 @@ char* dlerror(void);
 void dlerror_mt(char *buf, size_t buf_len);
 
 /**
+ * helper function for getting registry values that may not exist yet
+ * @param	key				registry key to query
+ * @param	caller_buf 		caller supplied buffer for storing the queried value
+ * @param	caller_buf_len	length of caller_buf in bytes
+ * @param	reg_val_name	name of the value to query
+ * @param	timeout			time (in ms) to wait for the registry key to appear
+ * @return					TRUE if querying succeeded, FALSE if not
+ */
+bool registry_wait_get_value(HKEY key, void *caller_buf, size_t *caller_buf_len, char *reg_val_name,
+			size_t timeout)
+
+/**
  * dlclose() from <dlfcn.h>
  */
 int dlclose(void *handle);

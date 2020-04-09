@@ -723,3 +723,78 @@ bool guid2string(char *dst, size_t dst_len, GUID *guid)
 	}
 	return ret == 36 ? TRUE : FALSE;
 }
+
+/**
+ * see header
+ */
+bool registry_wait_get_value(HKEY key, void *caller_buf, size_t *caller_buf_len, char *reg_val_name,
+			size_t timeout)
+{
+	/* timeout is in ms */
+	timeval_t now, deadline;
+	DWORD own_ret = FALSE, function_ret_query, function_ret_wait, timeout;
+	HANDLE handle = CreateEventExA(
+		NULL,
+		FALSE,
+		FALSE,
+		NULL
+		);
+	if (!handle)
+	{
+		char buf[512];
+		dlerror_mt(buf, sizeof(buf);
+		DBG1(DBG_LIB, "Failed to create handle: %s", buf ))
+		return FALSE;
+	}	
+	/* Get current time, add timeout */
+	time_monotonic(&deadline);
+	timeval_add_ms(&deadline, timeout);
+
+	while(TRUE)
+	{
+		/* Set up handle for notify */
+		if (!RegNotifyChangeKeyValue(key, FALSE, REG_NOTIFY_CHANGE_LAST_SET, handle, true))
+		{
+			char buf[512];
+			dlerror_mt(buf, sizeof(buf_len));
+			DBG1(DBG_LIB, "Failed to call RegNotifyChangeKeyValue: %s", buf);
+			break;
+		}
+		/* Try to get value */
+
+		function_ret_query = RegQueryValueExA(key, reg_val_name, NULL, NULL, caller_buf, &caller_buf_len);
+		if(function_ret_query == ERROR_FILE_NOT_FOUND || function_ret_query == ERROR_PATH_NOT_FOUND)
+		{
+			time_monotonic(&now);
+			/* All vars in this calculation are signed, so no issues
+			 * until the first part overflows (certainly farther in the future than this code will run)
+			 */
+			int64_t ms_to_deadline = (deadline.secs - now.secs) * 1000 + (deadline.u_secs - now.u_secs)
+			if (ms_to_deadline <= 0)
+			{
+				DBG1(DBG_LIB, "Timed out waiting for registry value %s", reg_val_name);
+				break;
+			}
+			function_ret_wait = WaitForSingleObjectEx(handle, ms_to_deadline, FALSE)
+			if(function_ret_wait != WAIT_OBJECT_0)
+			{
+				char buf[512];
+				dlerror_mt(buf, sizeof(buf));
+				DBG1(DBG_LIB, "Failed to wait for event (WaitForSingleObjectEx(): %ld): %s", function_ret_wait, buf);
+				break;
+			} 
+
+		} else if (!function_ret_query) {
+			char buf[512];
+			dlerror_mt(buf, sizeof(buf));
+			DBG1(DBG_LIB, "Failed to read registry value (RegQueryValueExA): %s", buf);
+			break;
+		} else {
+			/* succeeded */
+			own_ret = TRUE;
+			break;
+		}
+	}
+	CloseHandle(handle);
+	return own_ret;
+}
