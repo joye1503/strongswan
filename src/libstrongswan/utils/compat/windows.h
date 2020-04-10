@@ -297,6 +297,15 @@ bool registry_wait_get_value(HKEY key, void *caller_buf, size_t *caller_buf_len,
 			size_t timeout);
 
 /**
+ * Helper function for expanding strings containing environmental variables in Windows %var% format.
+ * Warning: This function silently fails to expand the string if realloc() fails.
+ * @param	buf 			source buffer to get the original string from
+ * @param 	buf_len 		length of the buffer in bytes
+ * @param	new_buf_len		variable to store the length of the new buffer in (length is in bytes)
+ */
+char *windows_expand_string(char *buf, size_t *buf_len, size_t *new_buf_len);
+
+/**
  * dlclose() from <dlfcn.h>
  */
 int dlclose(void *handle);

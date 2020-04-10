@@ -804,6 +804,29 @@ bool registry_wait_get_value(HKEY key, void *caller_buf, size_t *caller_buf_len,
 				break;
 		}
 	}
+
+/**
+ * Described in header.
+ */
+char *windows_expand_string(char *buf, size_t *buf_len, size_t *new_buf_len)
+{
+	size_t new_length = *buf_len, required_size;
+	char *intermediate_buf = NULL;
+
+	for(size_t i=0;i<=2;i++)
+	{
+		intermediate_buf = realloc(intermediate_buf, new_length);
+		required_size = ExpandEnvironmentStringsA(buf, intermediate_buf, new_length);
+		if (required_size > new_length)
+		{
+			new_length = required_size;
+		} else {
+			break;
+		}
+	}
+	*new_buf_len = new_length;
+	return intermediate_buf;
+}
 	CloseHandle(handle);
 	return own_ret;
 }
