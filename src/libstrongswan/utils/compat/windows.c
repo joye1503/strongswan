@@ -16,10 +16,7 @@
 /* WSAPoll() */
 #define _WIN32_WINNT 0x0600
 
-#include <utils/utils.h>
-
-#include <errno.h>
-
+#include "windows.h"
 /**
  * See header
  */
@@ -715,7 +712,7 @@ bool guid2string(char *dst, size_t dst_len, GUID *guid)
 	if(dst_len <= 36)
 	{
 		ret = snprintf(dst, dst_len,
-			"%08lx-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x",,
+			"%08lx-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x",
 			guid->Data1, guid->Data2, guid->Data3,	
 			guid->Data4[0], guid->Data4[1], guid->Data4[2], guid->Data4[3],
 			guid->Data4[4], guid->Data4[5], guid->Data4[6], guid->Data4[7]);
@@ -732,18 +729,19 @@ bool registry_wait_get_value(HKEY key, void *caller_buf, size_t *caller_buf_len,
 {
 	/* timeout is in ms */
 	timeval_t now, deadline;
-	DWORD own_ret = FALSE, function_ret_query, function_ret_wait, timeout;
+	DWORD own_ret = FALSE, function_ret_query, function_ret_wait;
+	char buf[512];
 	HANDLE handle = CreateEventExA(
 		NULL,
 		FALSE,
 		FALSE,
-		NULL
+		0
 		);
 	if (!handle)
 	{
 		char buf[512];
-		dlerror_mt(buf, sizeof(buf);
-		DBG1(DBG_LIB, "Failed to create handle: %s", buf ))
+		dlerror_mt(buf, sizeof(buf));
+		DBG1(DBG_LIB, "Failed to create handle: %s", buf);
 		return FALSE;
 	}	
 	/* Get current time, add timeout */
@@ -753,7 +751,7 @@ bool registry_wait_get_value(HKEY key, void *caller_buf, size_t *caller_buf_len,
 	while(TRUE)
 	{
 		/* Try to get value */
-		function_ret_query = RegQueryValueExA(key, reg_val_name, NULL, reg_val_type, caller_buf, caller_buf_len);
+		function_ret_query = RegQueryValueExA(key, reg_val_name, NULL, reg_val_type, caller_buf, (LPDWORD) caller_buf_len);
 		switch(function_ret_query)
 		{
 			case ERROR_FILE_NOT_FOUND:
@@ -762,7 +760,7 @@ bool registry_wait_get_value(HKEY key, void *caller_buf, size_t *caller_buf_len,
 				/* All vars in this calculation are signed, so no issues
 				 * until the first part overflows (certainly farther in the future than this code will run)
 				 */
-				int64_t ms_to_deadline = (deadline.secs - now.secs) * 1000 + (deadline.u_secs - now.u_secs);
+				int64_t ms_to_deadline = (deadline.tv_sec - now.tv_sec) * 1000 + (deadline.tv_usec - now.tv_usec);
 				if (ms_to_deadline <= 0)
 				{
 					DBG1(DBG_LIB, "Timed out waiting for registry value %s", reg_val_name);
@@ -772,8 +770,7 @@ bool registry_wait_get_value(HKEY key, void *caller_buf, size_t *caller_buf_len,
 				/* Set up handle for notify */
 				if (!RegNotifyChangeKeyValue(key, FALSE, REG_NOTIFY_CHANGE_LAST_SET, handle, true))
 				{
-					char buf[512];
-					dlerror_mt(buf, sizeof(buf_len));
+					dlerror_mt(buf, sizeof(buf));
 					DBG1(DBG_LIB, "Failed to call RegNotifyChangeKeyValue: %s", buf);
 					break;
 					break;
@@ -781,7 +778,6 @@ bool registry_wait_get_value(HKEY key, void *caller_buf, size_t *caller_buf_len,
 				function_ret_wait = WaitForSingleObjectEx(handle, ms_to_deadline, FALSE);
 				if(function_ret_wait != WAIT_OBJECT_0)
 				{
-					char buf[512];
 					dlerror_mt(buf, sizeof(buf));
 					DBG1(DBG_LIB, "Failed to wait for event (WaitForSingleObjectEx(): %ld): %s", function_ret_wait, buf);
 					break;
@@ -789,7 +785,7 @@ bool registry_wait_get_value(HKEY key, void *caller_buf, size_t *caller_buf_len,
 				}
 				break;
 			case ERROR_MORE_DATA:
-				caller_buf = realloc(caller_buf, caller_buf_len);
+				caller_buf = realloc(caller_buf, *caller_buf_len);
 				break;
 			case TRUE:
 				/* succeeded */
@@ -797,13 +793,19 @@ bool registry_wait_get_value(HKEY key, void *caller_buf, size_t *caller_buf_len,
 				break;
 				break;
 			default:
-				char buf[512];
 				dlerror_mt(buf, sizeof(buf));
 				DBG1(DBG_LIB, "Failed to read registry value (RegQueryValueExA): %s", buf);
 				break;
 				break;
 		}
 	}
+	if(caller_buf)
+	{
+		free(caller_buf);
+	}
+	CloseHandle(handle);
+	return own_ret;
+}
 
 /**
  * Described in header.
@@ -827,6 +829,146 @@ char *windows_expand_string(char *buf, size_t *buf_len, size_t *new_buf_len)
 	*new_buf_len = new_length;
 	return intermediate_buf;
 }
+
+/**
+ * Described in header.
+ */
+bool registry_open_wait(HKEY key, char *path, DWORD access, size_t timeout)
+{
+	/* timeout is in ms */
+	HKEY intermediate = NULL;
+	char buf[512];
+	timeval_t now, deadline;
+	DWORD own_ret = FALSE, function_ret_wait;
+	char *str = path, *strtok_r_buf[512], *current_path = NULL;
+	/* Number of iterations */
+	size_t cnt = 0, current_path_len = 0, old_path_len = 0, tok_len;
+	HANDLE handle = CreateEventExA(
+		NULL,
+		FALSE,
+		FALSE,
+		0
+	);
+
+	if (!handle)
+	{
+		char buf[512];
+		dlerror_mt(buf, sizeof(buf));
+		DBG1(DBG_LIB, "Failed to create handle: %s", buf);
+		return FALSE;
+	}	
+
+	/* Get current time, add timeout */
+	time_monotonic(&deadline);
+	timeval_add_ms(&deadline, timeout);	
+	/* In the loop, we check if each key occuring in the path is accessible.
+	 * If a key is not, it will be created by the installation routine that was called before this function.
+	 * This means that we instead wait for an event in the registry in which the key was created.
+	 * This function is written under the presumption that the large majority of the path is accessible already
+	 * and thus the contents of the switch case for ERROR_PATH_NOT_FOUND and ERROR_FILE_NOT_FOUND are only called
+	 * seldomly. It was written with saving syscalls in mind.
+	 */
+	while (TRUE)
+	{
+		char *tok = strtok_r(str, "\\", strtok_r_buf);
+		if (tok)
+		{
+			/* Need to proactively check if this is the final path name so we can use a different access rights bitmask instead of NOTIFY */
+			old_path_len = current_path_len;
+			tok_len = strlen(tok);
+			str += tok_len + 1;
+			current_path_len += tok_len + 1;
+			current_path = realloc(current_path, current_path_len+1);
+			/* Add the new token to the path*/
+			strncat(current_path+old_path_len, tok, tok_len-1);
+			/* Check if the current path is accessible */
+			switch(RegOpenKeyA(key, current_path, &intermediate))
+			{
+				case ERROR_SUCCESS:
+				break;
+				case ERROR_FILE_NOT_FOUND:
+				case ERROR_PATH_NOT_FOUND:
+					time_monotonic(&now);
+					/* All vars in this calculation are signed, so no issues
+					 * until the first part overflows (certainly farther in the future than this code will run)
+					 */
+					int64_t ms_to_deadline = (deadline.tv_sec - now.tv_sec) * 1000 + (deadline.tv_usec - now.tv_usec);
+					if (ms_to_deadline <= 0)
+					{
+						DBG1(DBG_LIB, "Timed out waiting for registry value %s", current_path);
+						break;
+						break;
+					}
+					/* Setup notifier */
+					if (!RegNotifyChangeKeyValue(key, FALSE, REG_NOTIFY_CHANGE_NAME, handle, true))
+					{
+						dlerror_mt(buf, sizeof(buf));
+						DBG1(DBG_LIB, "Failed to setup notify handle for REG_NOTIFY_CHANGE_NAME on %s using RegNotifyChangeKeyValue: %s", current_path, buf);
+						goto cleanup;
+					}
+					/* Check if we can access the key */
+					switch(RegOpenKeyA(key, current_path, &intermediate))
+					{
+						case ERROR_SUCCESS:
+							/* Close the notifier handle again and open a new one, just in case the kernel handles reusing of active handles badly.*/
+							CloseHandle(handle);
+							handle = CreateEventExA(
+								NULL,
+								FALSE,
+								FALSE,
+								0
+							);
+
+							if (!handle)
+							{
+								dlerror_mt(buf, sizeof(buf));
+								DBG1(DBG_LIB, "Failed to create handle: %s", buf);
+								goto cleanup;
+							}
+							break;
+						case ERROR_FILE_NOT_FOUND:
+						case ERROR_PATH_NOT_FOUND:
+							time_monotonic(&now);
+							/* All vars in this calculation are signed, so no issues
+							 * until the first part overflows (certainly farther in the future than this code will run)
+							 */
+							int64_t ms_to_deadline = (deadline.tv_sec - now.tv_sec) * 1000 + (deadline.tv_usec - now.tv_usec);
+							if (ms_to_deadline <= 0)
+							{
+								DBG1(DBG_LIB, "Timed out waiting for registry value %s", current_path);
+								goto cleanup;
+							}
+							function_ret_wait = WaitForSingleObjectEx(handle, ms_to_deadline, FALSE);
+							if(function_ret_wait != WAIT_OBJECT_0)
+							{
+								dlerror_mt(buf, sizeof(buf));
+								DBG1(DBG_LIB, "Failed to wait for event (WaitForSingleObjectEx(): %ld): %s", function_ret_wait, buf);
+								goto cleanup;
+							}
+							break;
+						default:
+							dlerror_mt(buf, sizeof(buf));
+							DBG1(DBG_LIB, "Failed to open registry value (RegOpenKeyEx): %s", buf);
+							goto cleanup;
+							break;
+					}
+					break;
+				default:
+					dlerror_mt(buf, sizeof(buf));
+					DBG1(DBG_LIB, "Failed to open registry key %s (RegOpenKeyA): %s", current_path, buf);
+					goto cleanup;
+					break;
+			}
+		}
+		cnt++;
+	}
+
+cleanup:
+	if(current_path)
+	{
+		free(current_path);
+	}
+	RegCloseKey(intermediate);
 	CloseHandle(handle);
 	return own_ret;
 }
