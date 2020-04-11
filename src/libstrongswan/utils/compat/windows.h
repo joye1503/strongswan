@@ -293,7 +293,7 @@ void dlerror_mt(char *buf, size_t buf_len);
  * @param	timeout			time (in ms) to wait for the registry key to appear
  * @return					TRUE if querying succeeded, FALSE if not
  */
-bool registry_wait_get_value(HKEY key, void *caller_buf, size_t *caller_buf_len, char *reg_val_name, DWORD *reg_val_type
+bool registry_wait_get_value(HKEY key, void *caller_buf, size_t *caller_buf_len, char *reg_val_name, DWORD *reg_val_type,
 			size_t timeout);
 
 /**
