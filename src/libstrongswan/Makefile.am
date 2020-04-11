@@ -154,7 +154,8 @@ if USE_WINDOWS
     threading/windows/rwlock.c \
     threading/windows/spinlock.c \
     threading/windows/semaphore.c \
-    utils/compat/windows.c
+    utils/compat/windows.c \
+    utils/windows_helper.c
 else
   libstrongswan_la_LIBADD += $(PTHREADLIB)
 endif

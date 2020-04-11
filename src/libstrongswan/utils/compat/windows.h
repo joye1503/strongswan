@@ -21,6 +21,8 @@
 #ifndef WINDOWS_H_
 #define WINDOWS_H_
 
+#include <errno.h>
+
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <direct.h>
@@ -38,6 +40,8 @@
 
 /* used by Windows API, but we have our own */
 #undef CALLBACK
+
+#include <utils/utils.h>
 
 /* UID/GID types for capabilities, even if not supported */
 typedef u_int uid_t;
@@ -143,17 +147,6 @@ int asprintf(char **strp, const char *fmt, ...);
  * Provided by printf hook backend
  */
 int vasprintf(char **strp, const char *fmt, va_list ap);
-
-/**
- * helper function for writing guids into character buffers
- * Thread safe and safe for calling several times.
- * Writes the GUID in XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXXXXXX form
- * @param		dst 	destination buffer for GUID. Has to be at least 37 characters in length.
- * @param		dst_len	length of destination buffer
- * @param		GUID 	GUID to transform into a string
- * @return				Boolean indicating success (buffer long enough) or failure (buffer too short)
- */
-bool guid2string(char *dst, size_t dst_len, GUID *guid);
 
 /**
  * timeradd(3) from <sys/time.h>
@@ -279,31 +272,6 @@ char* dlerror(void);
  * @param 	buf_len	length of caller supplied buffer
  */
 void dlerror_mt(char *buf, size_t buf_len);
-
-/**
- * helper function for getting registry values that may not exist yet
- * @param	key				registry key to query
- * @param	caller_buf 		caller supplied buffer for storing the queried value. Must be realloc()-atable
- *							If the function returns FALSE, the content of caller_buf is undefined.
- * @param	caller_buf_len	length of caller_buf in bytes.
- 							Will contain the length of the written data in bytes after the function returns.
- 							If the function returns FALSE, the content of caller_buf_len is undefined.
- * @param	reg_val_name	name of the value to query
- * @param	reg_val_type	Will contain the registry type of the value (MULTI_SZ, EXPAND_SZ, ...)
- * @param	timeout			time (in ms) to wait for the registry key to appear
- * @return					TRUE if querying succeeded, FALSE if not
- */
-bool registry_wait_get_value(HKEY key, void *caller_buf, size_t *caller_buf_len, char *reg_val_name, DWORD *reg_val_type,
-			size_t timeout);
-
-/**
- * Helper function for expanding strings containing environmental variables in Windows %var% format.
- * Warning: This function silently fails to expand the string if realloc() fails.
- * @param	buf 			source buffer to get the original string from
- * @param 	buf_len 		length of the buffer in bytes
- * @param	new_buf_len		variable to store the length of the new buffer in (length is in bytes)
- */
-char *windows_expand_string(char *buf, size_t *buf_len, size_t *new_buf_len);
 
 /**
  * dlclose() from <dlfcn.h>
