@@ -257,8 +257,9 @@ win*)
 			--enable-imc-os --enable-imv-os --enable-tnc-imv --enable-tnc-imc
 			--enable-pki --enable-swanctl --enable-socket-win
 			--enable-kernel-iph --enable-kernel-wfp --enable-winhttp"
-	if test "$TARGET" = "wintun"; then
+	if test "$TEST" = "wintun"; then
 		CONFIG="$CONFIG --enable-wintun --enable-kernel-libipsec --enable-libipsec"
+
 	fi
 	# no make check for Windows binaries unless we run on a windows host
     CCACHE=ccache
