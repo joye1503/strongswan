@@ -29,7 +29,8 @@
 #include <inttypes.h>
 #include <unistd.h>
 #include <sys/stat.h>
-
+#include <setupapi.h>
+#include "../../../../../winsdk-10/Include/10.0.16299.0/shared/devpkey.h"
 /* undef Windows variants evaluating values more than once */
 #undef min
 #undef max
@@ -270,8 +271,9 @@ char* dlerror(void);
  * thread save dlerror variant, uses caller supplied buffer
  * @param	buf 	caller supplied buffer
  * @param 	buf_len	length of caller supplied buffer
+ * @return             caller supplied buffer
  */
-void dlerror_mt(char *buf, size_t buf_len);
+char *dlerror_mt(char *buf, size_t buf_len);
 
 /**
  * dlclose() from <dlfcn.h>
@@ -288,6 +290,27 @@ int socketpair(int domain, int type, int protocol, int sv[2]);
  */
 char* getpass(const char *prompt);
 #define HAVE_GETPASS
+
+ WINSETUPAPI BOOL WINAPI SetupDiGetDeviceInterfacePropertyW(
+  HDEVINFO                  DeviceInfoSet,
+  PSP_DEVICE_INTERFACE_DATA DeviceInterfaceData,
+  const DEVPROPKEY          *PropertyKey,
+  DEVPROPTYPE               *PropertyType,
+  PBYTE                     PropertyBuffer,
+  DWORD                     PropertyBufferSize,
+  PDWORD                    RequiredSize,
+  DWORD                     Flags
+);
+
+ WINAPI LSTATUS RegSetKeyValueA(
+  HKEY    hKey,
+  LPCSTR  lpSubKey,
+  LPCSTR  lpValueName,
+  DWORD   dwType,
+  LPCVOID lpData,
+  DWORD   cbData
+);
+ 
 
 /**
  * Map MSG_DONTWAIT to the reserved, but deprecated MSG_INTERRUPT

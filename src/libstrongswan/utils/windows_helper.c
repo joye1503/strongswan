@@ -32,10 +32,18 @@ bool guid2string(char *dst, size_t dst_len, GUID *guid)
 	return ret == 36 ? TRUE : FALSE;
 }
 
+bool guidfromstring(GUID *guid, char *str)
+{
+    size_t read = scanf("%08lx-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x",
+                        guid->Data1, guid->Data2, guid->Data3,	
+			guid->Data4[0], guid->Data4[1], guid->Data4[2], guid->Data4[3],
+			guid->Data4[4], guid->Data4[5], guid->Data4[6], guid->Data4[7]);
+    return read == 36 ? TRUE :  FALSE;
+}
 /**
  * see header
  */
-bool registry_wait_get_value(HKEY key, void *caller_buf, size_t *caller_buf_len, char *reg_val_name, DWORD *reg_val_type,
+bool registry_wait_get_value(HKEY key, void *caller_buf, DWORD *caller_buf_len, char *reg_val_name, DWORD *reg_val_type,
 			size_t timeout)
 {
 	/* timeout is in ms */
@@ -121,7 +129,7 @@ bool registry_wait_get_value(HKEY key, void *caller_buf, size_t *caller_buf_len,
 /**
  * Described in header.
  */
-char *windows_expand_string(char *buf, size_t *buf_len, size_t *new_buf_len)
+char *windows_expand_string(char *buf, DWORD *buf_len, size_t *new_buf_len)
 {
 	size_t new_length = *buf_len, required_size;
 	char *intermediate_buf = NULL;

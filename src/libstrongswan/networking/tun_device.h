@@ -65,7 +65,8 @@ typedef struct _TUN_PACKET {
     ULONG Size;
     UCHAR Data[TUN_MAX_IP_PACKET_SIZE];
 } TUN_PACKET;
-#endif
+#endif /* __WIN32__ */
+
 typedef struct tun_device_t tun_device_t;
 
 /**

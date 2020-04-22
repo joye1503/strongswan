@@ -183,7 +183,7 @@ char* dlerror(void)
  * MT safe dlerror variant with caller supplied buffer
  * See header
  */
-void dlerror_mt(char *buf, size_t buf_len)
+char *dlerror_mt(char *buf, size_t buf_len)
 {
 	char *pos;
 	DWORD err;
@@ -202,6 +202,7 @@ void dlerror_mt(char *buf, size_t buf_len)
 	{
 		snprintf(buf, buf_len, "(%u)", err);
 	}	
+        return buf;
 }
 /**
  * See header.

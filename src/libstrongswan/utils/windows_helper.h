@@ -33,6 +33,15 @@
 bool guid2string(char *dst, size_t dst_len, GUID *guid);
 
 /**
+ * helper function for reading GUIDs in string form (without the {}) into a GUID type structure.
+ * Thread safe and safe for calling several times.
+ * @param               guid    allocated GUID type structure, will receive the data from the GUID
+ * @param               str     source string to read into the GUID type structure
+ * @return                      Boolean indicating success or failure (string too short or not a valid GUID)
+ */
+bool guidfromstring(GUID *guid, char *str);
+
+/**
  * helper function for getting registry values that may not exist yet
  * @param	key				registry key to query
  * @param	caller_buf 		caller supplied buffer for storing the queried value. Must be realloc()-atable
@@ -45,7 +54,7 @@ bool guid2string(char *dst, size_t dst_len, GUID *guid);
  * @param	timeout			time (in ms) to wait for the registry key to appear
  * @return					TRUE if querying succeeded, FALSE if not
  */
-bool registry_wait_get_value(HKEY key, void *caller_buf, size_t *caller_buf_len, char *reg_val_name, DWORD *reg_val_type,
+bool registry_wait_get_value(HKEY key, void *caller_buf, DWORD *caller_buf_len, char *reg_val_name, DWORD *reg_val_type,
 			size_t timeout);
 
 /**
@@ -55,6 +64,6 @@ bool registry_wait_get_value(HKEY key, void *caller_buf, size_t *caller_buf_len,
  * @param 	buf_len 		length of the buffer in bytes
  * @param	new_buf_len		variable to store the length of the new buffer in (length is in bytes)
  */
-char *windows_expand_string(char *buf, size_t *buf_len, size_t *new_buf_len);
+char *windows_expand_string(char *buf, DWORD *buf_len, size_t *new_buf_len);
 
 #endif
