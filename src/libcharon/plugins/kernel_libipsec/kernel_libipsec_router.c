@@ -258,14 +258,20 @@ METHOD(kernel_listener_t, tun, bool,
 	private_kernel_libipsec_router_t *this, tun_device_t *tun, bool created)
 {
 	tun_entry_t *entry, lookup;
+#ifndef WIN32
 	char buf[] = {0x01};
+#endif
 
 	this->lock->write_lock(this->lock);
 	if (created)
 	{
 		INIT(entry,
 			.addr = tun->get_address(tun, NULL),
+#ifdef WIN32
+			.handle = tun->get_handle(tun),
+#else
 			.fd = tun->get_fd(tun),
+#endif /* !WIN32 */
 			.tun = tun,
 		);
 		this->tuns->put(this->tuns, entry, entry);
@@ -277,7 +283,11 @@ METHOD(kernel_listener_t, tun, bool,
 		free(entry);
 	}
 	/* notify handler thread to recreate FD set */
+#ifdef WIN32
+	ignore_result(SetEvent(this->event));
+#else
 	ignore_result(write(this->notify[1], buf, sizeof(buf)));
+#endif
 	this->lock->unlock(this->lock);
 	return TRUE;
 }
