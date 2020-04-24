@@ -522,6 +522,7 @@ METHOD(tun_device_t, write_packet, bool,
         }
         return TRUE;
 }
+
 METHOD(tun_device_t, read_packet, bool, 
         private_tun_device_t *this, chunk_t *packet)
 {
