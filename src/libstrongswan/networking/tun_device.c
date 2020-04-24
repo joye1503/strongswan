@@ -703,7 +703,7 @@ bool create_wintun(char *guid)
 	/* Reimplementation of CreateInterface from wireguard */
 	char className[MAX_CLASS_NAME_LEN], buf[512], interface_name[512];
 	uint64_t index = 0, driverVersion = 0;
-	char *property_buffer = NULL, error_buf[512];
+	char *property_buffer = NULL;
 	DWORD property_buffer_length = 0, required_length = 0,
             reg_value_type, error;
 	FILETIME driver_date;
