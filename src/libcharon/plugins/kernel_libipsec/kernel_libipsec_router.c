@@ -16,6 +16,10 @@
 #include <unistd.h>
 #include <fcntl.h>
 
+#ifdef WIN32
+#include <signal.h>
+#endif
+
 #include "kernel_libipsec_router.h"
 
 #include <daemon.h>
