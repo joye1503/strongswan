@@ -39,7 +39,11 @@ typedef struct {
 	/** virtual IP (points to internal data of tun) */
 	host_t *addr;
 	/** underlying TUN file descriptor (cached from tun) */
+#ifdef WIN32
+	HANDLE handle;
+#else
 	int fd;
+#endif /* !WIN32 */
 	/** TUN device */
 	tun_device_t *tun;
 } tun_entry_t;
