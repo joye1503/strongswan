@@ -191,13 +191,64 @@ static job_requeue_t handle_plain(private_kernel_libipsec_router_t *this)
 {
 	enumerator_t *enumerator;
 	tun_entry_t *entry;
-	bool oldstate;
 	int count = 0;
+#ifdef WIN32
+	HANDLE *tun_handles;
+	DWORD ret;
+#else
+	bool oldstate;
 	char buf[1];
 	struct pollfd *pfd;
+#endif
 
+#ifdef WIN32
 	this->lock->read_lock(this->lock);
-
+	/* Check if any of the TUN devices has data for reading */
+	tun_handles = alloca(sizeof(HANDLE)* (this->tuns->get_count(this->tuns)+2));
+	tun_handles[count] = this->event;
+	count++;
+	tun_handles[count] = this->tun.handle;
+	count++;
+	enumerator = this->tuns->create_enumerator(this->tuns);
+	while (enumerator->enumerate(enumerator, NULL, &entry))
+	{
+		tun_handles[count] = entry->handle;
+		count++;
+	}
+	this->lock->unlock(this->lock);
+	enumerator->destroy(enumerator);
+	ret = WaitForMultipleObjects(count, tun_handles, FALSE, INFINITE);
+	if (ret >= WAIT_OBJECT_0 || ret <= WAIT_OBJECT_0 + count -1)
+	{
+		int offset = ret - WAIT_OBJECT_0;
+		switch(offset)
+		{
+			case 0:
+		    		ResetEvent(tun_handles[offset]);
+				return JOB_REQUEUE_DIRECT;
+				break;
+			case 1:
+    				process_plain(this->tun.tun);
+    				break;
+			default:
+				this->lock->read_lock(this->lock);
+				while (enumerator->enumerate(enumerator, NULL, &entry))
+				{
+					if (WaitForSingleObjectEx(entry->handle, 0, FALSE))
+					{
+						process_plain(entry->tun);
+						}
+				}
+			break;
+		}
+	}
+	else if (ret == WAIT_FAILED)
+	{
+		char error_buf[512];
+		DBG1(DBG_LIB, "Failed to wait for tun devices to be ready for reading: %s",
+		dlerror_mt(error_buf, sizeof(error_buf)));
+	}
+#else
 	pfd = alloca(sizeof(*pfd) * (this->tuns->get_count(this->tuns) + 2));
 	pfd[count].fd = this->notify[0];
 	pfd[count].events = POLLIN;
@@ -249,6 +300,7 @@ static job_requeue_t handle_plain(private_kernel_libipsec_router_t *this)
 		}
 	}
 	enumerator->destroy(enumerator);
+#endif
 	this->lock->unlock(this->lock);
 
 	return JOB_REQUEUE_DIRECT;
@@ -325,8 +377,14 @@ METHOD(kernel_libipsec_router_t, destroy, void,
 	charon->kernel->remove_listener(charon->kernel, &this->public.listener);
 	this->lock->destroy(this->lock);
 	this->tuns->destroy(this->tuns);
+#ifdef WIN32
+	SetEvent(this->event);
+	CloseHandle(this->tun.handle);
+	CloseHandle(this->event);
+#else
 	close(this->notify[0]);
 	close(this->notify[1]);
+#endif
 	router = NULL;
 	free(this);
 }
