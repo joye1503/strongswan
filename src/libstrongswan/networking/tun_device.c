@@ -497,10 +497,11 @@ METHOD(tun_device_t, get_name, char*,
 }
 #endif /* !__WIN32__ */
 #ifdef __WIN32__
+/* On WIN32 we return the handle of the read ring (kernel space -> user space) */
 METHOD(tun_device_t, get_handle, HANDLE,
         private_tun_device_t *this)
 {
-        return this->tun_handle;
+        return this->rings->Send.TailMoved;
 }
 
 METHOD(tun_device_t, write_packet, bool,
