@@ -334,7 +334,15 @@ kernel_libipsec_router_t *kernel_libipsec_router_create()
 			.tun = lib->get(lib, "kernel-libipsec-tun"),
 		}
 	);
-
+#ifdef WIN32
+	this->tun.handle = this->tun.tun->get_handle(this->tun.tun);
+        if ((this->event = CreateEvent(NULL, FALSE, FALSE, FALSE)))
+        {
+            DBG1(DBG_KNL, "creating notify event for kernel-libipsec router failed");
+            free(this);
+            return NULL;
+        }
+#else
 	if (pipe(this->notify) != 0 ||
 		!set_nonblock(this->notify[0]) || !set_nonblock(this->notify[1]))
 	{
@@ -344,7 +352,7 @@ kernel_libipsec_router_t *kernel_libipsec_router_create()
 	}
 
 	this->tun.fd = this->tun.tun->get_fd(this->tun.tun);
-
+#endif /* !WIN32 */
 	this->tuns = hashtable_create((hashtable_hash_t)tun_entry_hash,
 								  (hashtable_equals_t)tun_entry_equals, 4);
 	this->lock = rwlock_create(RWLOCK_TYPE_DEFAULT);
