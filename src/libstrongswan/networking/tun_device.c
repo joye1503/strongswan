@@ -244,28 +244,36 @@ static bool write_to_ring(TUN_RING *ring, chunk_t packet)
 
 static chunk_t *pop_from_ring(TUN_RING *ring)
 {
+        uint32_t length;
+        size_t aligned_packet_size;
         /* TODO: If ring is over capacity wait until event is sent */
         chunk_t *chunk_packet;
+        TUN_PACKET *packet;
         /* Ring is empty if head == tail */
+        if (ring->Head == ring->Tail)
+        {
+            return NULL;
+        }
         if (ring_over_capacity(ring))
         {
             DBG0(DBG_LIB, "RING is over capacity!");
             return FALSE;
         }
-        uint32_t length = TUN_WRAP_POSITION((ring->Tail - ring->Head),
+        length = TUN_WRAP_POSITION((ring->Tail - ring->Head),
             TUN_RING_SIZE(ring, TUN_RING_CAPACITY));
+            
         if (length <sizeof(uint32_t))
         {
             DBG0(DBG_LIB, "RING contains incomplete packet header!");
-            /* Need to restart the driver here */
+            /* FIXME: Need to restart the complete driver here(!) */
         }
-        TUN_PACKET *packet = (TUN_PACKET *)&(ring->Data[ring->Head]);
+        packet = (TUN_PACKET *)&(ring->Data[ring->Head]);
         if (packet->Size > TUN_MAX_IP_PACKET_SIZE)
         {
             DBG0(DBG_LIB, "RING contains packet larger than TUN_MAX_IP_PACKET_SIZE!");
         }
 
-        size_t aligned_packet_size = TUN_PACKET_ALIGN(sizeof(uint32_t) + packet->Size);
+        aligned_packet_size = TUN_PACKET_ALIGN(sizeof(uint32_t) + packet->Size);
         if (aligned_packet_size > length)
         {
             DBG0(DBG_LIB, "Incomplete packet in ring!");
@@ -521,14 +529,14 @@ METHOD(tun_device_t, read_packet, bool,
         if (!next)
         {
                 this->rings->Send.Ring->Alertable = TRUE;
-            next = pop_from_ring(this->rings->Send.Ring);
-            if (!next)
-            {
-                WaitForSingleObject(this->rings->Send.TailMoved, INFINITE);
-                this->rings->Send.Ring->Alertable = FALSE;
-            }
-            this->rings->Send.Ring->Alertable = FALSE,
-            ResetEvent(this->rings->Send.TailMoved);
+                next = pop_from_ring(this->rings->Send.Ring);
+                if (!next)
+                {
+                    WaitForSingleObject(this->rings->Send.TailMoved, INFINITE);
+                    this->rings->Send.Ring->Alertable = FALSE;
+                }
+                this->rings->Send.Ring->Alertable = FALSE,
+                ResetEvent(this->rings->Send.TailMoved);
         }
         *packet = *next;
         return TRUE;
