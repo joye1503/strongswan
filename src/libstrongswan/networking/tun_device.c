@@ -37,7 +37,7 @@
 #if !TARGET_OS_OSX
 #define TUN_DEVICE_NOT_SUPPORTED
 #endif
-#elif !defined(__linux__) && !defined(HAVE_NET_IF_TUN_H) && !defined(WINTUN)
+#elif ! (defined(__linux__) || defined(HAVE_NET_IF_TUN_H) || defined(WINTUN))
 #define TUN_DEVICE_NOT_SUPPORTED
 #endif
 
