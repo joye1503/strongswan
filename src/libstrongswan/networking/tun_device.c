@@ -1564,6 +1564,6 @@ tun_device_t *tun_device_create(const char *name_tmpl)
 	}
 #endif /* !WIN32 */
 	return &this->public;
-}}
+}
 
 #endif /* TUN devices supported */
