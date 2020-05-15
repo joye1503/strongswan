@@ -146,8 +146,10 @@ AM_LDFLAGS = \
 AM_YFLAGS = -v -d
 
 if USE_WINDOWS
-  libstrongswan_la_LIBADD += -lws2_32 -lpsapi
+  libstrongswan_la_LIBADD += -lws2_32 -lpsapi -lcfgmgr32 -lsetupapi
   libstrongswan_la_SOURCES += \
+    networking/windows_tun.c \
+    networking/wintun_support.c \
     threading/windows/thread.c \
     threading/windows/thread_value.c \
     threading/windows/mutex.c \
