@@ -192,63 +192,12 @@ static job_requeue_t handle_plain(private_kernel_libipsec_router_t *this)
 	enumerator_t *enumerator;
 	tun_entry_t *entry;
 	int count = 0;
-#ifdef WIN32
-	HANDLE *tun_handles;
-	DWORD ret;
-#else
+#ifndef WIN32
 	bool oldstate;
 	char buf[1];
 	struct pollfd *pfd;
-#endif
 
-#ifdef WIN32
 	this->lock->read_lock(this->lock);
-	/* Check if any of the TUN devices has data for reading */
-	tun_handles = alloca(sizeof(HANDLE)* (this->tuns->get_count(this->tuns)+2));
-	tun_handles[count] = this->event;
-	count++;
-	tun_handles[count] = this->tun.handle;
-	count++;
-	enumerator = this->tuns->create_enumerator(this->tuns);
-	while (enumerator->enumerate(enumerator, NULL, &entry))
-	{
-		tun_handles[count] = entry->handle;
-		count++;
-	}
-	this->lock->unlock(this->lock);
-	enumerator->destroy(enumerator);
-	ret = WaitForMultipleObjects(count, tun_handles, FALSE, INFINITE);
-	if (ret >= WAIT_OBJECT_0 || ret <= WAIT_OBJECT_0 + count -1)
-	{
-		int offset = ret - WAIT_OBJECT_0;
-		switch(offset)
-		{
-			case 0:
-		    		ResetEvent(tun_handles[offset]);
-				return JOB_REQUEUE_DIRECT;
-				break;
-			case 1:
-    				process_plain(this->tun.tun);
-    				break;
-			default:
-				this->lock->read_lock(this->lock);
-				while (enumerator->enumerate(enumerator, NULL, &entry))
-				{
-					if (WaitForSingleObjectEx(entry->handle, 0, FALSE))
-					{
-						process_plain(entry->tun);
-						}
-				}
-			break;
-		}
-	}
-	else if (ret == WAIT_FAILED)
-	{
-		char error_buf[512];
-		DBG1(DBG_LIB, "Failed to wait for tun devices to be ready for reading: %s",
-		dlerror_mt(error_buf, sizeof(error_buf)));
-	}
-#else
 	pfd = alloca(sizeof(*pfd) * (this->tuns->get_count(this->tuns) + 2));
 	pfd[count].fd = this->notify[0];
 	pfd[count].events = POLLIN;
@@ -256,7 +205,6 @@ static job_requeue_t handle_plain(private_kernel_libipsec_router_t *this)
 	pfd[count].fd = this->tun.fd;
 	pfd[count].events = POLLIN;
 	count++;
-
 	enumerator = this->tuns->create_enumerator(this->tuns);
 	while (enumerator->enumerate(enumerator, NULL, &entry))
 	{
@@ -300,9 +248,59 @@ static job_requeue_t handle_plain(private_kernel_libipsec_router_t *this)
 		}
 	}
 	enumerator->destroy(enumerator);
-#endif
+#else
+	HANDLE *tun_handles;
+	DWORD ret;
+	this->lock->read_lock(this->lock);
+	/* Check if any of the TUN devices has data for reading */
+	tun_handles = alloca(sizeof(HANDLE)* (this->tuns->get_count(this->tuns)+2));
+	tun_handles[count] = this->event;
+	count++;
+	tun_handles[count] = this->tun.handle;
+	count++;
+	enumerator = this->tuns->create_enumerator(this->tuns);
+	while (enumerator->enumerate(enumerator, NULL, &entry))
+	{
+		tun_handles[count] = entry->handle;
+		count++;
+	}
+	
+	enumerator->destroy(enumerator);
 	this->lock->unlock(this->lock);
-
+	
+	ret = WaitForMultipleObjects(count, tun_handles, FALSE, INFINITE);
+	this->lock->read_lock(this->lock);
+	if (ret >= WAIT_OBJECT_0 || ret <= WAIT_OBJECT_0 + count -1)
+	{
+		int offset = ret - WAIT_OBJECT_0;
+		switch(offset)
+		{
+			case 0:
+				ResetEvent(tun_handles[offset]);
+				return JOB_REQUEUE_DIRECT;
+				break;
+			case 1:
+				process_plain(this->tun.tun);
+				break;
+			default:
+				while (enumerator->enumerate(enumerator, NULL, &entry))
+				{
+					if (WaitForSingleObjectEx(entry->handle, 0, FALSE))
+					{
+						process_plain(entry->tun);
+					}
+				}
+				break;
+		}
+	}
+	else if (ret == WAIT_FAILED)
+	{
+		char error_buf[512];
+		DBG1(DBG_LIB, "Failed to wait for tun devices to be ready for reading: %s",
+		dlerror_mt(error_buf, sizeof(error_buf)));
+	}
+#endif /* WIN32 */
+	this->lock->unlock(this->lock);
 	return JOB_REQUEUE_DIRECT;
 }
 
