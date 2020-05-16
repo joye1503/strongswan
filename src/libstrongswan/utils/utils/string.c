@@ -15,7 +15,7 @@
  */
 
 #include <utils/utils.h>
-
+#include <utils/utils/memory.h>
 /**
  * Described in header.
  */
@@ -88,4 +88,30 @@ char* strreplace(const char *str, const char *search, const char *replace)
 	while ((found = strstr(pos, search)));
 	strcpy(dst, pos);
 	return res;
+}
+
+linked_list_t *strsplit(const char *str, const char *tokstr)
+{
+	linked_list_t *list = linked_list_create();
+	size_t length = strlen(str);
+	char *copy = alloca(length), **toks = &copy, *saveptr, *tok = NULL;
+	memwipe(copy, length);
+	tok = strtok_r(copy, "\\", &saveptr);
+	if (tok) {
+		list->insert_last(list, tok);
+		while(TRUE)
+		{
+			tok = strtok_r(NULL, "\\", &saveptr);
+			if (tok)
+			{
+				size_t substring_length = strlen(tok);
+				char *substring_copy = malloc(substring_length);
+				memcpy(substring_copy, tok,  substring_length);
+				list->insert_last(list, substring_copy);
+			} else {
+				break;
+			}
+		}
+	} 
+	return list;
 }
