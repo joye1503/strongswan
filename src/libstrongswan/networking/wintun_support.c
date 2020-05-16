@@ -302,7 +302,6 @@ METHOD(tun_device_t, wintun_up, bool,
 METHOD(tun_device_t, wintun_destroy, void,
 	private_windows_wintun_device_t *this)
 {
-	return TRUE;
 }
 
 /**
@@ -314,34 +313,41 @@ METHOD(tun_device_t, wintun_destroy, void,
 bool create_wintun(char *guid)
 {
 	/* Reimplementation of CreateInterface from wireguard */
-	char className[MAX_CLASS_NAME_LEN], buf[512], interface_name[512];
-	uint64_t index = 0, driverVersion = 0;
-	char *property_buffer = NULL;
+	char className[MAX_CLASS_NAME_LEN], buf[512],
+		*property_buffer = NULL, *NetCfgInstanceId[512], NetLuidIndex[512],
+		IfType[512], adapter_reg_key[512], ipconfig_value[512],
+		ipconfig_reg_key[512];
+	uint64_t index = 0;
 	DWORD property_buffer_length = 0, required_length = 0,
-            reg_value_type, error;
+		reg_value_type, error,
+		NetCfgInstanceId_length = sizeof(NetCfgInstanceId),
+		NetLuidIndex_length = sizeof(NetLuidIndex),
+		IfType_length = sizeof(IfType),
+		ipconfig_value_length = sizeof(ipconfig_value);
 	FILETIME driver_date;
 	DWORDLONG driver_version;
 	bool return_code = FALSE;
-	HKEY drv_reg_key;
+	HKEY drv_reg_key = NULL, ipconfig_reg_hkey = NULL, adapter_reg_hkey = NULL;
 	/* Timeout of 5000 ms for registry operations */
 	size_t registry_timeout = 5000, buffer_length;
 	/* Create an empty device info set for network adapter device class. */
-	SP_DEVINFO_DATA dev_info_data;
-	SP_DRVINFO_DATA_A drv_info_data;
-	SP_DEVINSTALL_PARAMS_A dev_install_params;
+	SP_DEVINFO_DATA dev_info_data = {
+		.cbSize = sizeof(SP_DEVINFO_DATA)
+	};
+	SP_DRVINFO_DATA_A drv_info_data = {
+		.cbSize = sizeof(SP_DRVINFO_DATA_A)
+	};
+	SP_DEVINSTALL_PARAMS_A dev_install_params = {
+		.cbSize = sizeof(SP_DEVINSTALL_PARAMS_A)
+	};
 	SP_DRVINFO_DETAIL_DATA_A drv_info_detail_data;
-        SP_DEVICE_INTERFACE_DATA dev_interface_data;
 	/* is this optimizable? */
-	drv_info_data.cbSize = sizeof(SP_DRVINFO_DATA_A);
-	dev_info_data.cbSize = sizeof(SP_DEVINFO_DATA);
-	dev_install_params.cbSize = sizeof(SP_DEVINSTALL_PARAMS_A);
 	HDEVINFO dev_info_set = SetupDiCreateDeviceInfoListExA(
 		&GUID_DEVCLASS_NET,
 		NULL,
 		NULL,
 		NULL
         );
-        DEVPROPKEY propkey;
         /* wait 50 ms */
         struct timespec ts = {
             .tv_sec = 0,
@@ -574,7 +580,7 @@ bool create_wintun(char *guid)
         if (!RegSetKeyValueA(drv_reg_key, NULL, "NetSetupAnticipatedInstanceId", REG_SZ, buf, strlen(buf)))
         {
                 DBG1(DBG_LIB, "Failed to set regkey NetSetupAnticipatedInstanceId (RegSetKeyValueA): %s", dlerror_mt(buf, sizeof(buf)));
-                goto close_drv_reg_key;
+                goto close_reg_keys;
         }
         SetupDiCallClassInstaller(
                 DIF_INSTALLINTERFACES,
@@ -589,7 +595,7 @@ bool create_wintun(char *guid)
                 ))
         {
                 DBG1(DBG_LIB, "Failed to install device (SetupDicallInstaller(DIF_INSTALLDEVICE)): %s", dlerror_mt(buf, sizeof(buf)));
-                goto close_drv_reg_key;
+                goto close_reg_keys;
         }
 
         if (!SetupDiGetDeviceInstallParamsA(
@@ -599,13 +605,10 @@ bool create_wintun(char *guid)
                 ))
         {
                 DBG1(DBG_LIB, "Failed to get install params (SetupDiGetDeviceInstallParamsA): %s", dlerror_mt(buf, sizeof(buf)));
-                goto close_drv_reg_key;
+                goto close_reg_keys;
         }
 
-        /* if (dev_install_params.Flags & (DI_NEEDREBOOT | DI_NEEDRESTART))
-        {
-
-        } */
+ 
 
         if (!SetupDiSetDeviceRegistryPropertyA(
                 dev_info_set,
@@ -616,83 +619,94 @@ bool create_wintun(char *guid)
         )))
         {
                 DBG1(DBG_LIB, "Failed to get device description (SetupDiSetDeviceRegistryPropertyA(SPDRP_DEVICEDESC)) failed: %s", dlerror_mt(buf, sizeof(buf)));
-                goto close_drv_reg_key;
+                goto close_reg_keys;
         }
 
-        if (!registry_wait_get_value(drv_reg_key, property_buffer, &property_buffer_length, "NetCfgInstanceId", &reg_value_type, registry_timeout))
+        if (!registry_wait_get_value(drv_reg_key, NetCfgInstanceId, (DWORD *) &NetCfgInstanceId_length, "NetCfgInstanceId", &reg_value_type, registry_timeout))
         {
                 DBG1(DBG_LIB, "Failed to retrieve NetCfgInstanceId key. Aborting tun device installation.");
-                goto close_drv_reg_key;
+                goto close_reg_keys;
         }
         if (!(reg_value_type &= (REG_SZ | REG_EXPAND_SZ | REG_MULTI_SZ)))
         {
                 DBG1(DBG_LIB, "Type of NetCfgInstanceId is not REG_SZ, REG_EXPAND_SZ or REG_MULTI_SZ (Meaning it is not a string). Aborting tun device install.");
-                goto close_drv_reg_key;
+                goto close_reg_keys;
         }
         /* Expand string */
 
         char *new_buf = windows_expand_string(property_buffer, &property_buffer_length, &buffer_length);
 
-        if (!registry_wait_get_value(drv_reg_key, property_buffer, &property_buffer_length, "NetLuidIndex", &reg_value_type, registry_timeout))
+        if (!registry_wait_get_value(drv_reg_key, NetLuidIndex, (DWORD *) &NetLuidIndex_length, "NetLuidIndex", &reg_value_type, registry_timeout))
         {
                 DBG1(DBG_LIB, "Failed to retrieve NetLuidIndex key. Aborting tun device installation.");
-                goto close_drv_reg_key;
+                goto close_reg_keys;
         }
         if (reg_value_type != REG_DWORD)
         {
                 DBG1(DBG_LIB, "Type of NetLuidIndex is not REG_DWORD. Aborting tun device installation.");
-                goto close_drv_reg_key;
+                goto close_reg_keys;
         }
 
-        if (!registry_wait_get_value(drv_reg_key, property_buffer, &property_buffer_length, "*IfType", &reg_value_type, registry_timeout))
+        if (!registry_wait_get_value(drv_reg_key, IfType, (DWORD *) &IfType_length, "*IfType", &reg_value_type, registry_timeout))
         {
                 DBG1(DBG_LIB, "Failed to retrieve *IfType key. Aborting tun device installation.");
-                goto close_drv_reg_key;
+                goto close_reg_keys;
         }
         if (reg_value_type != REG_DWORD)
         {
                 DBG1(DBG_LIB, "Type of *IfType is not REG_DWORD. Aborting tun device installation.");
-                goto close_drv_reg_key;
+                goto close_reg_keys;
         }
-
-        // SetupDiCallClassInstaller
-
-        // after this, when exiting, we need to run all the functions that are deferred in the Gocode
-
-        // Register device co-installers if any. (Ignore errors)
-
-        // devInfo.OpenDevRegKey
-
-        // SetupDiOpenDevRegKey
-
-        // netDevRegKey.SetStringValue("NetSetupAnticipatedInstanceId
-
-        // Install interfaces if any. (Ignore errors)
-
-        // SetupDiCallClassInstaller
-
-        // checkReboot
-
-        // devInfo.SetDeviceRegistryPropertyString
-
-        // registryEx.GetStringValueWait(netDevRegKey, "NetCfgInstanceId",
-
-        // registryEx.GetIntegerValueWait(netDevRegKey, "NetLuidIndex",
-
-        // registryEx.GetIntegerValueWait(netDevRegKey, "*IfType",
-
+	/* tcpipAdapterRegKeyName */
+	ignore_result(snprintf(adapter_reg_key, sizeof(adapter_reg_key),
+		"SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters\\Adapters\\%u",
+		NetCfgInstanceId));
+	
         // Wait for TCP/IP adapter registry key to emerge and populate.
+	// Wait for reg key to be populated
+	if(!(adapter_reg_hkey = registry_open_wait(HKEY_LOCAL_MACHINE, adapter_reg_key, 0, registry_timeout)))
+	{
+		DBG1(DBG_LIB, "Timeout while waiting for %s to be accessible.", adapter_reg_key);
+		goto close_reg_keys;
+	}
 
-        // OpenKeyWait
+        /* IpConfig */
+	if(!registry_wait_get_value(adapter_reg_hkey, ipconfig_value, &ipconfig_value_length, "IpConfig",
+		&reg_value_type, registry_timeout))
+	{
+		DBG1(DBG_LIB, "Timeout while waiting for key %s\\%s", adapter_reg_key, "IpConfig");
+		goto close_reg_keys;
+	}
+	
+	if (reg_value_type &= (REG_SZ | REG_EXPAND_SZ | REG_MULTI_SZ))
+	{
+		DBG1(DBG_LIB, "Invalid type for key %s\\%s", adapter_reg_key, "IpConfig");
+		goto close_reg_keys;
+	}
+	
+        /* tcpipInterfaceRegKeyName */
+	ignore_result(snprintf(ipconfig_reg_key, sizeof(ipconfig_reg_key),
+		"SYSTEM\\CurrentControlSet\\Services\\%s", ipconfig_value));
+	
+	if(!(ipconfig_reg_hkey = registry_open_wait(HKEY_LOCAL_MACHINE, ipconfig_reg_key, 0, registry_timeout)))
+	{
+		DBG1(DBG_LIB, "Timeout while waiting for key %s", ipconfig_reg_key);
+		goto close_reg_keys;
+	}
+	
+	/* EnableDeadGWDetect */
+	RegSetValueExA(ipconfig_reg_hkey, "EnableDeadGWDetect", 0, REG_DWORD, 0, sizeof(0));
+	
 
-        // GetStringValueWait
-
-        // tcpipInterfaceRegKeyName
-
-        // OpenKeyWait
-        // EnableDeadGWDetect
-
-close_drv_reg_key :
+close_reg_keys :
+	if(ipconfig_reg_hkey)
+	{
+		RegCloseKey(ipconfig_reg_hkey);
+	}
+	if(adapter_reg_hkey)
+	{
+		RegCloseKey(adapter_reg_hkey);
+	}
 	RegCloseKey(drv_reg_key);
 
 delete_driver_info_list : ;
@@ -973,7 +987,9 @@ bool configure_wintun(private_windows_wintun_device_t *this, const char *name_tm
 		}
 	}
 	
-	free(list->get_first(list, (void **) &interface));
+	list->get_first(list, (void **) &interface);
+	free(interface);
+
 	enumerator->destroy(enumerator);
 	list->destroy(list);
 	
