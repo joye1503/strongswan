@@ -43,8 +43,8 @@ bool guidfromstring(GUID *guid, char *str)
 /**
  * see header
  */
-bool registry_wait_get_value(HKEY key, void *caller_buf, DWORD *caller_buf_len, char *reg_val_name, DWORD *reg_val_type,
-			size_t timeout)
+bool registry_wait_get_value(HKEY key, void *caller_buf, DWORD *caller_buf_len,
+	char *reg_val_name, DWORD *reg_val_type, size_t timeout)
 {
 	/* timeout is in ms */
 	timeval_t now, deadline;
