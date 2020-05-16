@@ -58,12 +58,30 @@ bool registry_wait_get_value(HKEY key, void *caller_buf, DWORD *caller_buf_len, 
 			size_t timeout);
 
 /**
+ * helper function for waiting until the specified path exists (is accessible)
+ * @param       key           root registry key
+ * @param       path          complete path starting under the root registry key
+ * @param       access        unused
+ * @param       timeout       maximum time to wait for the key to be accessible
+ * @return                    Whether the key is accessible within the timeout or not
+ */
+HKEY registry_open_wait(HKEY key, char *path, DWORD access, size_t timeout);
+
+/**
  * Helper function for expanding strings containing environmental variables in Windows %var% format.
  * Warning: This function silently fails to expand the string if realloc() fails.
  * @param	buf 			source buffer to get the original string from
  * @param 	buf_len 		length of the buffer in bytes
  * @param	new_buf_len		variable to store the length of the new buffer in (length is in bytes)
+ * @return                             Heap allocated string containing th expanded string.
  */
 char *windows_expand_string(char *buf, DWORD *buf_len, size_t *new_buf_len);
 
+/**
+ * Helper function for checking if the specified device requires a reboot to complete installation.
+ * @param       dev_info_set    HDEVINFO type struct containing the device
+ * @param       dev_info_data   pointer to the struct containing the device
+ * @return                      State whether a reboot is required or not.
+ */
+bool check_reboot(HDEVINFO dev_info_set, SP_DEVINFO_DATA *dev_info_data);
 #endif
