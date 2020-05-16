@@ -152,16 +152,19 @@ char *windows_expand_string(char *buf, DWORD *buf_len, size_t *new_buf_len)
 /**
  * Described in header.
  */
-bool registry_open_wait(HKEY key, char *path, DWORD access, size_t timeout)
+HKEY registry_open_wait(HKEY key, char *path, DWORD access, size_t timeout)
 {
 	/* timeout is in ms */
 	HKEY intermediate = NULL;
 	char buf[512];
 	timeval_t now, deadline;
-	DWORD own_ret = FALSE, function_ret_wait;
-	char *str = path, *strtok_r_buf[512], *current_path = NULL;
+	DWORD function_ret_wait;
+	char *str = path, *tok, *current_path = NULL, *last_part;
 	/* Number of iterations */
 	size_t cnt = 0, current_path_len = 0, old_path_len = 0, tok_len;
+	linked_list_t *tokens = strsplit(path, "\\");
+	tokens->get_last(tokens, (void **) &last_part);
+	enumerator_t *enumerator = tokens->create_enumerator(tokens);
 	HANDLE handle = CreateEventA(
 		NULL,
 		FALSE,
@@ -181,18 +184,25 @@ bool registry_open_wait(HKEY key, char *path, DWORD access, size_t timeout)
 	time_monotonic(&deadline);
 	timeval_add_ms(&deadline, timeout);	
 	/* In the loop, we check if each key occuring in the path is accessible.
-	 * If a key is not, it will be created by the installation routine that was called before this function.
-	 * This means that we instead wait for an event in the registry in which the key was created.
-	 * This function is written under the presumption that the large majority of the path is accessible already
-	 * and thus the contents of the switch case for ERROR_PATH_NOT_FOUND and ERROR_FILE_NOT_FOUND are only called
+	 * If a key is not, it will be created by the installation routine
+	 * that was called before this function.
+	 * This means that we instead wait for an event in the registry in
+	 * which the key was created.
+	 * This function is written under the presumption that the large
+	 * majority of the path is accessible already
+	 * and thus the contents of the switch case for 
+	 * RROR_PATH_NOT_FOUND and ERROR_FILE_NOT_FOUND are only called
 	 * seldomly. It was written with saving syscalls in mind.
 	 */
-	while (TRUE)
+	while (enumerator->enumerate(enumerator, &tok))
 	{
-		char *tok = strtok_r(str, "\\", strtok_r_buf);
 		if (tok)
 		{
-			/* Need to proactively check if this is the final path name so we can use a different access rights bitmask instead of NOTIFY */
+			/* 
+			 * FIXME: Need to proactively check if this is the final
+			 * path name so we can use a different access rights
+			 * bitmask instead of NOTIFY
+			 */
 			old_path_len = current_path_len;
 			tok_len = strlen(tok);
 			str += tok_len + 1;
@@ -201,6 +211,11 @@ bool registry_open_wait(HKEY key, char *path, DWORD access, size_t timeout)
 			/* Add the new token to the path*/
 			strncat(current_path+old_path_len, tok, tok_len-1);
 			/* Check if the current path is accessible */
+			if (last_part == tok)
+			{
+				access = KEY_NOTIFY;
+			}
+			
 			switch(RegOpenKeyA(key, current_path, &intermediate))
 			{
 				case ERROR_SUCCESS:
@@ -226,7 +241,7 @@ bool registry_open_wait(HKEY key, char *path, DWORD access, size_t timeout)
 						goto cleanup;
 					}
 					/* Check if we can access the key */
-					switch(RegOpenKeyA(key, current_path, &intermediate))
+					switch(RegOpenKeyExA(key, current_path, 0, access, &intermediate))
 					{
 						case ERROR_SUCCESS:
 							/* Close the notifier handle again and open a new one, just in case the kernel handles reusing of active handles badly.*/
@@ -282,12 +297,27 @@ bool registry_open_wait(HKEY key, char *path, DWORD access, size_t timeout)
 		cnt++;
 	}
 
-cleanup:
+cleanup: ;
+	tokens->reset_enumerator(tokens, enumerator);
+	while(enumerator->enumerate(enumerator, str))
+	{
+		free(str);
+	}
+	enumerator->destroy(enumerator);
+	tokens->destroy(tokens);
 	if(current_path)
 	{
 		free(current_path);
 	}
-	RegCloseKey(intermediate);
 	CloseHandle(handle);
-	return own_ret;
+	return intermediate;
+}
+
+bool check_reboot(HDEVINFO dev_info_set, SP_DEVINFO_DATA *dev_info_data)
+{
+	SP_DEVINSTALL_PARAMS dev_install_params = {
+		.cbSize = sizeof(SP_DEVINSTALL_PARAMS)
+	};
+	bool ret = SetupDiGetDeviceInstallParamsA(dev_info_set, dev_info_data, &dev_install_params);
+	return dev_install_params.Flags & (DI_NEEDREBOOT | DI_NEEDRESTART) & ret;
 }
