@@ -309,7 +309,7 @@ char* getpass(const char *prompt);
   DWORD   dwType,
   LPCVOID lpData,
   DWORD   cbData
-);
+) __attribute__((dllimport));
  
 
 /**
