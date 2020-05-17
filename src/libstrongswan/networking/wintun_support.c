@@ -317,8 +317,8 @@ bool create_wintun(char *guid)
 	{
 		DBG1(DBG_LIB,
 			"Failed to create DeviceInfoList(SetupDiCreateDeviceInfoListExA): %s",
-			dlerror_mt(buf, sizeof(buf)));
-			return FALSE;
+				dlerror_mt(buf, sizeof(buf)));
+		goto delete_device_info_list;
 	}
 
 	if(!SetupDiClassNameFromGuidExA(
@@ -332,7 +332,7 @@ bool create_wintun(char *guid)
 	{
 		DBG1(DBG_LIB, "Failed to translate GUID to class name (SetupDiClassNameFromGuidExA): %s",
 			dlerror_mt(buf, sizeof(buf)));
-		return FALSE;
+		goto delete_device_info_list;
 	}
 
 	if (required_length > sizeof(className))
@@ -348,7 +348,9 @@ bool create_wintun(char *guid)
 			NULL
 		))
 		{
-			// log error and return
+			DBG1(DBG_LIB, "Failed to translate GUID to class name (SetupDiClassNameFromGuidExA): %s",
+				dlerror_mt(buf, sizeof(buf)));
+			goto delete_device_info_list;
 		}
 	}
 
@@ -362,7 +364,8 @@ bool create_wintun(char *guid)
 		DICD_GENERATE_ID,
 		&dev_info_data))
 	{
-		// log error, cleanup and return 
+		DBG1(DBG_LIB, "Failed to get wintun interfaces.");
+		goto delete_device_info_list;
 	}
 
 
@@ -378,13 +381,15 @@ bool create_wintun(char *guid)
 
 	if(!SetupDiSetDeviceInstallParamsA(dev_info_set, &dev_info_data, &dev_install_params))
 	{
-		// log error, cleanup and return	
+		DBG1(DBG_LIB, "Failed to set device install parameter (SetupDiSetDeviceInstallParamsA).");
+		goto delete_device_info_list;
 	}
 
 	// Set a device information element as the selected member of a device information set. SetupDiSetSelectedDevice
 	if(!SetupDiSetSelectedDevice(dev_info_set, &dev_info_data))
 	{
-		// log error, cleanup and return	
+		DBG1(DBG_LIB, "Failed to select device (SetupDiSetSelectedDevice).");
+		goto delete_device_info_list;
 	}
 
 	// Set Plug&Play device hardware ID property. SetupDiSetDeviceRegistryProperty
@@ -396,12 +401,14 @@ bool create_wintun(char *guid)
 		WINTUN_COMPONENT_ID,
 		sizeof(WINTUN_COMPONENT_ID)))
 	{
-		// log error, cleanup and return	
+		DBG1(DBG_LIB, "Failed to set Plug&Play device hardware ID property.");
+		goto delete_device_info_list;
 	}
 
 	if(!SetupDiBuildDriverInfoList(dev_info_set, &dev_info_data, SPDIT_COMPATDRIVER))
 	{
-		// log error, cleanup and return
+		DBG1(DBG_LIB, "Failed to build driver info list (SetupDiBuildDriverInfoList).");
+		goto delete_device_info_list;
 	}
 	// Following this, DestroyDriverInfoList has to be called, too
 
@@ -698,6 +705,7 @@ uninstall_device : ;
 			DBG1(DBG_LIB, "Failed to set class install params (SetupDiSetClassInstallParams): %s", dlerror_mt(buf, sizeof(buf)));
 		}
         }
+delete_driver_info_list: ;
         if (!SetupDiDestroyDriverInfoList(dev_info_set, &dev_info_data, SPDIT_COMPATDRIVER))
         {
                 DBG1(DBG_LIB, "Failed to destroy driver info list (SetupDiDestroyDriverInfoList): %s", dlerror_mt(buf, sizeof(buf)));
