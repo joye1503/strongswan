@@ -705,11 +705,12 @@ uninstall_device : ;
 			DBG1(DBG_LIB, "Failed to set class install params (SetupDiSetClassInstallParams): %s", dlerror_mt(buf, sizeof(buf)));
 		}
         }
-delete_driver_info_list: ;
-        if (!SetupDiDestroyDriverInfoList(dev_info_set, &dev_info_data, SPDIT_COMPATDRIVER))
+
+if (!SetupDiDestroyDriverInfoList(dev_info_set, &dev_info_data, SPDIT_COMPATDRIVER))
         {
                 DBG1(DBG_LIB, "Failed to destroy driver info list (SetupDiDestroyDriverInfoList): %s", dlerror_mt(buf, sizeof(buf)));
         }
+
 delete_device_info_list :
         if (!SetupDiDestroyDeviceInfoList(dev_info_set))
         {
