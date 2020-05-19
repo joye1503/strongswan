@@ -262,7 +262,7 @@ win*)
 
 	fi
 	# no make check for Windows binaries unless we run on a windows host
-    CCACHE=ccache
+    #CCACHE=ccache
 	if test "$APPVEYOR" != "True"; then
 		TARGET=
 	else
@@ -275,7 +275,8 @@ win*)
 	DEPS="gcc-mingw-w64-base ccache"
 	CONFIG="--host=x86_64-w64-mingw32 $CONFIG --enable-dbghelp-backtraces"
 	DEPS="gcc-mingw-w64-x86-64 binutils-mingw-w64-x86-64 mingw-w64-x86-64-dev $DEPS"
-	CC="$CCACHE x86_64-w64-mingw32-gcc"
+	#CC="$CCACHE x86_64-w64-mingw32-gcc"
+	CC="x86_64-w64-mingw32-gcc"
 	;;
 osx)
 	# this causes a false positive in ip-packet.c since Xcode 8.3
