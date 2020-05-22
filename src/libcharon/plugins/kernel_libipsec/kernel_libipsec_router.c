@@ -167,6 +167,7 @@ static void process_plain(tun_device_t *tun)
 	}
 }
 
+#ifndef WIN32
 /**
  * Find flagged revents in a pollfd set by fd
  */
@@ -183,6 +184,7 @@ static int find_revents(struct pollfd *pfd, int count, int fd)
 	}
 	return 0;
 }
+#endif
 
 /**
  * Job handling outbound plaintext packets
