@@ -77,7 +77,6 @@ static inline bool ring_over_capacity(TUN_RING *ring)
     return ((ring->Head >= TUN_RING_CAPACITY) || (ring->Tail >= TUN_RING_CAPACITY));
 }
 
-/*
 /* This is likely broken (!!!) */
 static bool write_to_ring(TUN_RING *ring, chunk_t packet)
 {
@@ -735,10 +734,8 @@ bool wireguard_get_interface()
 {
         GUID guid;
         char error_buf[512];
-	SP_DEVICE_INTERFACE_DATA dev_interface_data;
-        SP_DEVINFO_DATA dev_info_data;
+	SP_DEVINFO_DATA dev_info_data;
 	HDEVINFO dev_info_set;
-	dev_interface_data.cbSize = sizeof(SP_DEVICE_INTERFACE_DATA);
 	char *property_buffer = NULL, buf[512];
 	DWORD error = 0;
 	uint32_t ctr = 0;
@@ -1035,5 +1032,6 @@ tun_device_t *try_configure_wintun(const char *name_tmpl)
 		{
 			return new_device;
 		}
-	}	
+	}
+	return NULL;
 }
