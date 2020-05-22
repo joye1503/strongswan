@@ -94,7 +94,7 @@ linked_list_t *strsplit(const char *str, const char *tokstr)
 {
 	linked_list_t *list = linked_list_create();
 	size_t length = strlen(str);
-	char *copy = alloca(length), **toks = &copy, *saveptr, *tok = NULL;
+	char *copy = alloca(length), *saveptr, *tok = NULL;
 	memwipe(copy, length);
 	tok = strtok_r(copy, "\\", &saveptr);
 	if (tok) {
