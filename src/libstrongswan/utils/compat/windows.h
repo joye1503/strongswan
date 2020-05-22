@@ -30,7 +30,7 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <setupapi.h>
-#include "../../../../../winsdk-10/Include/10.0.16299.0/shared/devpkey.h"
+
 /* undef Windows variants evaluating values more than once */
 #undef min
 #undef max
