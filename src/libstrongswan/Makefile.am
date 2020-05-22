@@ -148,8 +148,6 @@ AM_YFLAGS = -v -d
 if USE_WINDOWS
   libstrongswan_la_LIBADD += -lws2_32 -lpsapi -lcfgmgr32 -lsetupapi
   libstrongswan_la_SOURCES += \
-    networking/windows_tun.c \
-    networking/wintun_support.c \
     threading/windows/thread.c \
     threading/windows/thread_value.c \
     threading/windows/mutex.c \
@@ -157,9 +155,15 @@ if USE_WINDOWS
     threading/windows/spinlock.c \
     threading/windows/semaphore.c \
     utils/compat/windows.c \
-    utils/windows_helper.c
 else
   libstrongswan_la_LIBADD += $(PTHREADLIB)
+endif
+
+if WINTUN
+    libstrongswan_la_SOURCES += \
+    utils/windows_helper.c \
+    networking/windows_tun.c \
+    networking/wintun_support.c
 endif
 
 if USE_DBGHELP
