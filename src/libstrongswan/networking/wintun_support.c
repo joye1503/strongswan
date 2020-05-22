@@ -274,7 +274,7 @@ bool create_wintun(char *guid)
 	char className[MAX_CLASS_NAME_LEN], buf[512],
 		*property_buffer = NULL, *NetCfgInstanceId[512], NetLuidIndex[512],
 		IfType[512], adapter_reg_key[512], ipconfig_value[512],
-		ipconfig_reg_key[512];
+		ipconfig_reg_key[512], *new_buf = NULL;
 	uint64_t index = 0;
 	DWORD property_buffer_length = 0, required_length = 0,
 		reg_value_type, error,
@@ -599,7 +599,7 @@ bool create_wintun(char *guid)
         }
         /* Expand string */
 
-        char *new_buf = windows_expand_string(property_buffer, &property_buffer_length, &buffer_length);
+        new_buf = windows_expand_string(property_buffer, &property_buffer_length, &buffer_length);
 
         if (!registry_wait_get_value(drv_reg_key, NetLuidIndex, (DWORD *) &NetLuidIndex_length, "NetLuidIndex", &reg_value_type, registry_timeout))
         {
