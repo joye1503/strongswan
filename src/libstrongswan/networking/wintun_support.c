@@ -283,7 +283,7 @@ bool create_wintun(char *guid)
 		IfType_length = sizeof(IfType),
 		ipconfig_value_length = sizeof(ipconfig_value);
 	FILETIME driver_date;
-	DWORDLONG driver_version;
+	DWORDLONG driver_version = 0;
 	bool return_code = FALSE;
 	HKEY drv_reg_key = NULL, ipconfig_reg_hkey = NULL, adapter_reg_hkey = NULL;
 	/* Timeout of 5000 ms for registry operations */
