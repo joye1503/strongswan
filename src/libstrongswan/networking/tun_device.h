@@ -25,6 +25,9 @@
 
 #include <networking/host.h>
 
+#ifdef WIN32
+#include "windows_tun.h"
+#else
 typedef struct tun_device_t tun_device_t;
 
 /**
@@ -99,21 +102,13 @@ struct tun_device_t {
 	 */
 	char *(*get_name)(tun_device_t *this);
 
-#ifdef WIN32
-        /**
-         * Get the underlying HANDLE.
-         *
-         * @return                              file HANDLE of this tun device
-         */
-        HANDLE (*get_handle)(tun_device_t *this);
-#else
 	/**
 	 * Get the underlying tun file descriptor.
 	 *
 	 * @return				file descriptor of this tun device
 	 */
 	int (*get_fd)(tun_device_t *this);
-#endif /* !__WIN32__ */
+
 	/**
 	 * Destroy a tun_device_t
 	 */
@@ -129,4 +124,5 @@ struct tun_device_t {
  */
 tun_device_t *tun_device_create(const char *name_tmpl);
 
+#endif
 #endif /** TUN_DEVICE_H_ @}*/

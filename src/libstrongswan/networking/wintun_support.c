@@ -24,7 +24,6 @@
 #include <utils/windows_helper.h>
 #include <ddk/ndisguid.h>
 
-#include "tun_device.h"
 #include "wintun_support.h"
 
 typedef struct private_windows_wintun_device_t private_windows_wintun_device_t;

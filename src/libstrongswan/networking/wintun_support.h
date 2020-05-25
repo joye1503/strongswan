@@ -30,7 +30,6 @@ extern "C" {
 #        endif
 
 #include "windows_tun.h"
-#include "tun_device.h"
 
 /* capacity must be a power of two and between 128 kiB and 64 MiB */
 #define IFNAMSIZ 256

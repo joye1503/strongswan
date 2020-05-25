@@ -152,7 +152,9 @@ tun_device_t *try_configure_openvpn(const char *name_tmpl)
 
 tun_device_t *tun_device_create(const char *name_tmpl)
 {
-	tun_device_t *public = try_configure_wintun(name_tmpl);
+        tun_device_t *public = NULL;
+#ifdef WINTUN
+	public = try_configure_wintun(name_tmpl);
 	/* if (!public)
 	{
 		public = try_configure_openvpn(name_tmpl);
@@ -163,5 +165,8 @@ tun_device_t *tun_device_create(const char *name_tmpl)
 		return NULL;
 	}
 	DBG1(DBG_LIB, "created TUN device: %s", public->get_name(public));
+#else
+	DBG1(DBG_LIB, "TUN devices are not supported");
+#endif
 	return public;
 }

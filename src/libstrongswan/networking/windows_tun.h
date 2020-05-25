@@ -25,7 +25,93 @@
 #ifndef WINDOWS_TUN_H
 #define WINDOWS_TUN_H
 
-#include "tun_device.h"
+typedef struct tun_device_t tun_device_t;
+
+/**
+ * Class to create TUN devices
+ *
+ * Creating such a device requires the CAP_NET_ADMIN capability.
+ */
+struct tun_device_t {
+
+	/**
+	 * Read a packet from the TUN device
+	 *
+	 * @note This call blocks until a packet is available. It is a thread
+	 * cancellation point.
+	 *
+	 * @param packet		the packet read from the device, allocated
+	 * @return				TRUE if successful
+	 */
+	bool (*read_packet)(tun_device_t *this, chunk_t *packet);
+
+	/**
+	 * Write a packet to the TUN device
+	 *
+	 * @param packet		the packet to write to the TUN device
+	 * @return				TRUE if successful
+	 */
+	bool (*write_packet)(tun_device_t *this, chunk_t packet);
+
+	/**
+	 * Set the IP address of the device
+	 *
+	 * @param addr			the desired interface address
+	 * @param netmask		the netmask to use
+	 * @return				TRUE if operation successful
+	 */
+	bool (*set_address)(tun_device_t *this, host_t *addr, uint8_t netmask);
+
+	/**
+	 * Get the IP address previously assigned to using set_address().
+	 *
+	 * @param netmask		pointer receiving the configured netmask, or NULL
+	 * @return				address previously set, NULL if none
+	 */
+	host_t* (*get_address)(tun_device_t *this, uint8_t *netmask);
+
+	/**
+	 * Bring the TUN device up
+	 *
+	 * @return				TRUE if operation successful
+	 */
+	bool (*up)(tun_device_t *this);
+
+	/**
+	 * Set the MTU for this TUN device
+	 *
+	 * @param mtu			new MTU
+	 * @return				TRUE if operation successful
+	 */
+	bool (*set_mtu)(tun_device_t *this, int mtu);
+
+	/**
+	 * Get the current MTU for this TUN device
+	 *
+	 * @return				current MTU
+	 */
+	int (*get_mtu)(tun_device_t *this);
+
+	/**
+	 * Get the interface name of this device
+	 *
+	 * @return				interface name
+	 */
+	char *(*get_name)(tun_device_t *this);
+
+        /**
+         * Get the underlying HANDLE.
+         *
+         * @return                              file HANDLE of this tun device
+         */
+        HANDLE (*get_handle)(tun_device_t *this);
+
+	/**
+	 * Destroy a tun_device_t
+	 */
+	void (*destroy)(tun_device_t *this);
+
+};
 
  /*
  * Helper function to get the next HardwareID in the

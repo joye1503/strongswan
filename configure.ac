@@ -1787,7 +1787,7 @@ AM_CONDITIONAL(USE_PYTHON_EGGS, test x$python_eggs = xtrue)
 AM_CONDITIONAL(USE_PERL_CPAN, test x$perl_cpan = xtrue)
 AM_CONDITIONAL(USE_TOX, test "x$TOX" != x)
 AM_CONDITIONAL(USE_PY_TEST, test "x$PY_TEST" != x -a "x$TOX" = x)
-AM_CONDITIONAL(WINTUN, test "x$WINTUN" != x)
+AM_CONDITIONAL(USE_WINTUN, test "x$WINTUN" != x)
 
 # ========================
 #  set global definitions
@@ -1821,7 +1821,7 @@ if test x$imc_swima = xtrue -o x$imv_swima = xtrue; then
 	AC_DEFINE([USE_JSON], [], [build code for JSON])
 fi
 if test x$wintun = xtrue; then
-	AC_DEFINE([WINTUN], [], [Build in wintun TUN driver support])
+	AC_DEFINE([USE_WINTUN], [], [Build in wintun TUN driver support])
 fi
 
 # ====================================================

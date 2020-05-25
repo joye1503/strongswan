@@ -19,8 +19,11 @@
 
 #include <daemon.h>
 #include <ipsec.h>
+#ifdef WIN32
+#include <networking/windows_tun.h>
+#else
 #include <networking/tun_device.h>
-
+#endif
 #define TUN_DEFAULT_MTU 1400
 
 typedef struct private_kernel_libipsec_plugin_t private_kernel_libipsec_plugin_t;
