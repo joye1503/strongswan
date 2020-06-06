@@ -5,7 +5,7 @@ set -x
 build_botan()
 {
 	# same revision used in the build recipe of the testing environment
-	BOTAN_REV=0881f2c33ff7 # 2.13.0 + amalgamation patch
+	BOTAN_REV=2.14.0
 	BOTAN_DIR=$DEPS_BUILD_DIR/botan
 
 	if test -d "$BOTAN_DIR"; then
