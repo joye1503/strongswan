@@ -66,10 +66,10 @@ else
     threading/windows/spinlock.c \
     threading/windows/semaphore.c \
     utils/compat/windows.c \
-    utils/windows_helper.c \
-    networking/windows_tun.c
+    utils/windows_helper.c
 if USE_WINTUN
   libstrongswan_la_SOURCES += \
+    networking/windows_tun.c \
     networking/wintun_support.c
 endif
 endif
