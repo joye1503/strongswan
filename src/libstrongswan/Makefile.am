@@ -139,10 +139,10 @@ utils/utils/string.h utils/utils/memory.h utils/utils/tty.h utils/utils/path.h \
 utils/utils/status.h utils/utils/object.h utils/utils/time.h utils/utils/align.h
 if USE_WINDOWS
   nobase_strongswan_include_HEADERS += \
-    utils/windows_helper.h \
-    networking/windows_tun.h
+    utils/windows_helper.h
 if USE_WINTUN
  nobase_strongswan_include_HEADERS += \
+   networking/windows_tun.h \
    networking/wintun_support.h
 endif
 endif
