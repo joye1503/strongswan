@@ -54,10 +54,11 @@ build_wolfssl()
 
 		WOLFSSL_CFLAGS="-DWOLFSSL_PUBLIC_MP -DWOLFSSL_DES_ECB"
 		WOLFSSL_CONFIG="--prefix=$DEPS_PREFIX
-						--enable-keygen --enable-rsapss --enable-aesccm
-						--enable-aesctr --enable-des3 --enable-camellia
-						--enable-curve25519 --enable-ed25519"
-
+			--enable-keygen --enable-rsapss --enable-aesccm
+			--enable-aesctr --enable-des3 --enable-camellia
+			--enable-curve25519 --enable-ed25519
+			--enable-curve448 --enable-ed448
+			--enable-sha3 --enable-shake256"
 		git clone https://github.com/wolfSSL/wolfssl.git $WOLFSSL_DIR &&
 		cd $WOLFSSL_DIR &&
 		git checkout -qf $WOLFSSL_REV &&
@@ -65,7 +66,7 @@ build_wolfssl()
 		./configure C_EXTRA_FLAGS="$WOLFSSL_CFLAGS" $WOLFSSL_CONFIG &&
 		make -j4 >/dev/null		
 	fi
-
+	
 	ret=$?
 	if [ $ret != 0 ]
 	then
