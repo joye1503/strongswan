@@ -124,5 +124,5 @@ struct tun_device_t {
  */
 tun_device_t *tun_device_create(const char *name_tmpl);
 
-#endif
+#endif /* !WIN32 */
 #endif /** TUN_DEVICE_H_ @}*/
