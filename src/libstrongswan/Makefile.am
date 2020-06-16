@@ -70,8 +70,7 @@ else
     utils/windows_helper.c \
     networking/windows_tun.c
 if USE_WINTUN
-  libstrongswan_la_SOURCES += \
-    networking/wintun_support.c
+  libstrongswan_la_SOURCES += networking/wintun_support.c
 endif
 endif
 
@@ -147,6 +146,7 @@ if USE_WINTUN
    networking/wintun_support.h
 endif
 else
+ nobase_strongswan_include_HEADERS += \
     networking/tun_device.h
 endif
 endif
@@ -176,11 +176,6 @@ if USE_WINDOWS
   libstrongswan_la_LIBADD += -lws2_32 -lpsapi -lcfgmgr32 -lsetupapi
 else
   libstrongswan_la_LIBADD += $(PTHREADLIB)
-endif
-
-if USE_WINTUN
-  libstrongswan_la_SOURCES += \
-    networking/wintun_support.c
 endif
 
 if USE_DBGHELP

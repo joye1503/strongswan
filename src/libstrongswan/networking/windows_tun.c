@@ -153,7 +153,7 @@ tun_device_t *try_configure_openvpn(const char *name_tmpl)
 tun_device_t *tun_device_create(const char *name_tmpl)
 {
         tun_device_t *public = NULL;
-#ifdef WINTUN
+#ifdef USE_WINTUN
 	public = try_configure_wintun(name_tmpl);
 	/* if (!public)
 	{

@@ -27,6 +27,10 @@
 
 typedef struct tun_device_t tun_device_t;
 
+#ifdef USE_WINTUN
+#include "wintun_support.h"
+#endif
+
 /**
  * Class to create TUN devices
  *
