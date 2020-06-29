@@ -908,21 +908,30 @@ char *search_interfaces(GUID *GUID)
                 free(interfaces);
                 interfaces = NULL;
             }
-            while(TRUE)
-            if (CM_Get_Device_Interface_List_Size(&required_chars, (LPGUID)&GUID_DEVINTERFACE_NET,
-                guid_string, CM_GET_DEVICE_INTERFACE_LIST_PRESENT) != CR_SUCCESS)
-                return NULL;
-            interfaces = realloc(interfaces, required_chars*sizeof(WCHAR));
+            for(int i=0;i<2;i++) {
+		if (CM_Get_Device_Interface_List_Size(&required_chars,
+			(LPGUID)&GUID_DEVINTERFACE_NET,
+			guid_string,
+			CM_GET_DEVICE_INTERFACE_LIST_PRESENT) != CR_SUCCESS)
+		{
+		    return NULL;
+		}
+		interfaces = realloc(interfaces, required_chars*sizeof(WCHAR));
+	    }
             if (!interfaces)
+	    {
                 return NULL;
-	    /* CM_GET_DEVICE_INTERFACE_LIST writes a zero byte seperated array of strings *
-	     * Because GUIID is a device guid, the resulting string array should only have one member
+	    }
+	    /* CM_Get_Device_Interface_List writes a zero byte seperated array of strings *
+	     * Because GUID is a device guid, the resulting string array should only have one member
 	     * (Making it effectively a double zero byte terminated string)
 	     */
             ret = CM_Get_Device_Interface_List((LPGUID)&GUID_DEVINTERFACE_NET, guid_string,
                             interfaces, required_chars, CM_GET_DEVICE_INTERFACE_LIST_PRESENT);
             if (ret == CR_SUCCESS)
+	    {
                 break;
+	    }
             if (ret != CR_BUFFER_SMALL)
             {
                 free(interfaces);
@@ -943,14 +952,20 @@ bool configure_wintun(private_windows_wintun_device_t *this, const char *name_tm
 	char *interface;
 	while(enumerator->enumerate(enumerator, (void **) &interface))
 	{
+	    /* wireguard uses FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE instead of 0 after 
+	       GENERIC_READ | GENERIC_WRITE. The reason for that is unknown. It makes no sense though.
+	     */
 		this->tun_handle = CreateFile(interface, GENERIC_READ | GENERIC_WRITE,
-						 FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-						 NULL, OPEN_EXISTING, 0, NULL);
+						 0, NULL, OPEN_EXISTING, 0, NULL);
 		if(this->tun_handle) {
+		    strncpy(this->if_name, interface, sizeof(this->if_name));
 			break;
+		} else {
+			DBG0(DBG_LIB, "Failed to open tun file handle %s: %s",
+			    interface, dlerror_mt(buf, sizeof(buf)));
 		}
 	}
-	
+	DBG0(DBG_LIB, "foo");
 	list->get_first(list, (void **) &interface);
 	free(interface);
 
@@ -959,8 +974,7 @@ bool configure_wintun(private_windows_wintun_device_t *this, const char *name_tm
 	
         if(!this->tun_handle)
         {
-        	/* Failed to open file, log error */
-        	DBG1(DBG_LIB, "Failed to open tun file handle: %s", dlerror_mt(buf, sizeof(buf)));
+		DBG0(DBG_LIB, "Failed to find an unused TUN device.");
 		return FALSE;
         }
 	
@@ -991,7 +1005,7 @@ GUID *find_unused_wintun_device(const char *name_tmpl)
 }
 
 /* Stub. Returns the public interface of a fully configured wintun device */
-tun_device_t *initialize_unused_wintun_device(GUID *specific_wintun_device_guid, const char *name_tmpl)
+tun_device_t *initialize_unused_wintun_device(const char *name_tmpl)
 {
 	private_windows_wintun_device_t *this;
 	INIT(this,
@@ -1012,22 +1026,25 @@ tun_device_t *initialize_unused_wintun_device(GUID *specific_wintun_device_guid,
 		.ifindex = 0,
 
 	);
-	configure_wintun(this, name_tmpl);
-	
-	return &this->public;
+	if(configure_wintun(this, name_tmpl))
+	{
+	    return &this->public;
+	} else {
+	    free(this);
+	    return NULL;
+	}
 }
 
 /* Possibly creates, and configures a wintun device */
 tun_device_t *try_configure_wintun(const char *name_tmpl)
 {
-	tun_device_t *new_device;
-	GUID *unused_wintun_device;
+	tun_device_t *new_device = NULL;
 	/* Be robust */
 	for(int i=0;i<5;i++)
 	{
 		/* Try to find an unused wintun device */
-		unused_wintun_device = find_unused_wintun_device(name_tmpl);
-		if (unused_wintun_device && (new_device = initialize_unused_wintun_device(unused_wintun_device, name_tmpl)))
+		new_device = initialize_unused_wintun_device(name_tmpl);
+		if (new_device)
 		{
 			return new_device;
 		}
