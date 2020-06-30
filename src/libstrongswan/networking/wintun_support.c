@@ -958,7 +958,8 @@ bool configure_wintun(private_windows_wintun_device_t *this, const char *name_tm
 		this->tun_handle = CreateFile(interface, GENERIC_READ | GENERIC_WRITE,
 						 0, NULL, OPEN_EXISTING, 0, NULL);
 		if(this->tun_handle) {
-		    strncpy(this->if_name, interface, sizeof(this->if_name));
+		    /* Don't overwrite last byte */
+		    strncpy(this->if_name, interface, sizeof(this->if_name)-1);
 			break;
 		} else {
 			DBG0(DBG_LIB, "Failed to open tun file handle %s: %s",
