@@ -943,12 +943,22 @@ char *search_interfaces(GUID *GUID)
 
 bool configure_wintun(private_windows_wintun_device_t *this, const char *name_tmpl)
 {
-	char buf[512];
-	char *interfaces = search_interfaces((GUID *) &GUID_WINTUN_STRONGSWAN);
-	/* Iterate over contents */
+	char buf[512], *interfaces;
+	for(int i;i<2;i++) {
+	    interfaces = search_interfaces((GUID *) &GUID_WINTUN_STRONGSWAN);
+	    if(!interfaces)
+	    {
+		if (!create_wintun(NULL))
+		{
+		    DBG0(DBG_LIB, "Failed to create new wintun device");
+		    return FALSE;
+		}
+	    }
+	}
+	/* Iterate over contents */	
 	linked_list_t *list = string_array_to_linked_list(interfaces);
 	enumerator_t *enumerator = list->create_enumerator(list);
-	
+
 	char *interface;
 	while(enumerator->enumerate(enumerator, (void **) &interface))
 	{
@@ -972,7 +982,7 @@ bool configure_wintun(private_windows_wintun_device_t *this, const char *name_tm
 
 	enumerator->destroy(enumerator);
 	list->destroy(list);
-	
+
         if(!this->tun_handle)
         {
 		DBG0(DBG_LIB, "Failed to find an unused TUN device.");
