@@ -24,6 +24,8 @@
 #include <utils/windows_helper.h>
 #include <ddk/ndisguid.h>
 
+#include <string.h>
+
 #include "../utils/utils/memory.h"
 #include "../collections/linked_list.h"
 
@@ -49,21 +51,38 @@ struct private_openvpn_tun_device_t {
 char *windows_drv_info_get_next_hardwareid(char *pile, size_t *offset)
 {
 	size_t len = 0, old_offset = 0;
+	old_offset = *offset;
+	len = strlen(pile + *offset);
+	*offset += len + 1;
+	if (len == 0)
+	{
+		/* End of the list, empty string. */
+		return NULL;
+	}
+	return pile + old_offset;
+}
+
+/*
+ * Wide string version of windows_drv_info_get_next_hardwareid 
+ */
+/*
+wchar_t *windows_drv_info_get_next_hardwareid_wide(wchar_t *pile, size_t *offset)
+{
+	size_t len = 0, old_offset = 0;
 	while(true)
 	{
 		old_offset = *offset;
-		len = strlen(pile + *offset);
-		*offset += len + 1;
-		
+		len = wcslen(pile + *offset);
+		*offset += len + sizeof(wchar_t);
 		if (len == 0)
 		{
-			/* End of the list, empty string. */
+			End of the list, empty string. 
 			return NULL;
 		}
-
 		return pile + old_offset;
 	}
 }
+*/
 
 /*
  * Helper function that wraps around windows_drv_info_get_next_hardwareid.
@@ -82,43 +101,197 @@ bool find_matching_hardwareid(char *pile, char* needle)
 	while(true)
 	{
 		item = windows_drv_info_get_next_hardwareid(pile, &offset);
+		DBG0(DBG_LIB, "next hardwareID: %s", item);
 		if (!item)
 		{
 			return false;
 		}
 
-		if(strcmp(item, needle) == 0)
+		if(!strcmp(item, needle))
+		{
+			return true;
+		}
+	}
+	return false;
+}
+/*
+ * Wide version of find_matching_hardwareid
+ */
+/*
+bool find_matching_hardwareid_wide(wchar_t *pile, wchar_t* needle)
+{
+	size_t offset = 0;
+	wchar_t *item;
+	while(true)
+	{
+		item = windows_drv_info_get_next_hardwareid_wide(pile, &offset);
+		DBG0(DBG_LIB, "next hardwareID: %ls", item);
+		if (!item)
+		{
+			return false;
+		}
+
+		if(wcscmp(item, needle) == 0)
 		{
 			return true;
 		}
 	}
 }
+*/
 
 char *windows_setupapi_get_friendly_name(char *buffer, size_t buf_len, HDEVINFO dev_info_set, SP_DEVINFO_DATA *dev_info_data)
 {
 	memwipe(buffer, buf_len);
 	size_t required_length;
-        DWORD prop_type;
-	if(!SetupDiGetDeviceRegistryPropertyA(
+        DWORD prop_type, ret;
+	if(!(ret=SetupDiGetDeviceRegistryPropertyA(
 		dev_info_set, dev_info_data,
 		SPDRP_FRIENDLYNAME,
 		&prop_type,
 		buffer,
 		buf_len,
 		(DWORD *)&required_length
-		))
+		)))
 	{
+		DBG1(DBG_LIB, "Ret: %d", ret);
 		/* Try hardware path instead */
-		SetupDiGetDeviceRegistryPropertyA(
+		ret=SetupDiGetDeviceRegistryPropertyA(
 			dev_info_set, dev_info_data,
 			SPDRP_LOCATION_INFORMATION,
 			&prop_type,
 			buffer,
 			buf_len,
 			(DWORD *)&required_length);
+		DBG1(DBG_LIB, "Ret 2: %d", ret);
+		if (strcmp(buffer, "\r\n") || strcmp(buffer, ""))
+		{
+		    ignore_result(snprintf(buffer, buf_len, "<unknown>"));
+		}
 		return buffer;
 	}
 	return buffer;
+}
+
+bool windows_get_driver_info_data_a(
+	HDEVINFO *dev_info_set,
+	SP_DEVINFO_DATA *dev_info_data,
+	SP_DRVINFO_DATA_A *drv_info_data,
+	PSP_DRVINFO_DETAIL_DATA_A *drv_info_detail_data,
+	DWORD *property_buffer_length,
+	DWORD *required_length
+)
+{
+    DWORD error, ret;
+    char buf[512];
+    while(TRUE)
+    {
+	if (!(ret=SetupDiGetDriverInfoDetailA(
+	    *dev_info_set,
+	    dev_info_data,
+	    drv_info_data,
+	    *drv_info_detail_data,
+	    *property_buffer_length,
+	    required_length
+	)))
+	{
+	    DBG0(DBG_LIB, "required_length: %u", *required_length);
+	    DBG0(DBG_LIB, "buffer length: %u", *property_buffer_length);
+	    error = GetLastError();
+	    DBG1(DBG_LIB, "ret: %d", ret);
+	    if(!error && !ret)
+	    {
+		DBG1(DBG_LIB, "Success!");
+		return TRUE;
+	    }
+	    else if (error == ERROR_INSUFFICIENT_BUFFER)
+	    {
+		DBG1(DBG_LIB, "Error: Insufficient memory.");
+		// allocate memory
+		*drv_info_detail_data = realloc(
+			*drv_info_detail_data,
+			*required_length + sizeof(SP_DRVINFO_DETAIL_DATA_A));
+		(*drv_info_detail_data)->cbSize = sizeof(SP_DRVINFO_DETAIL_DATA_A);
+		*property_buffer_length = *required_length + sizeof(SP_DRVINFO_DETAIL_DATA_A);
+		DBG0(DBG_LIB, "required_length: %u", *required_length);
+		if (!SetupDiGetDriverInfoDetailA(
+			*dev_info_set,
+			dev_info_data,
+			drv_info_data,
+			*drv_info_detail_data,
+			*property_buffer_length,
+			required_length
+		))
+		{
+		    DBG1(DBG_LIB,
+			    "Previous required length was bogus. New error is: %s",
+			    dlerror_mt(buf, sizeof(buf)));
+		}
+	    } else {
+		// other error occured. Log error and skip item.
+		DBG1(DBG_LIB, "A different error occured: %s",
+			dlerror_mt(buf, sizeof(buf)));
+	    }
+	} else {
+	    DBG1(DBG_LIB, "Received error: %s", dlerror_mt(buf, sizeof(buf)));
+	}
+    }
+    return FALSE;
+}
+
+bool check_hardwareids(SP_DRVINFO_DETAIL_DATA_A *drv_info_detail_data)
+{
+	// If the device does have a hardware ID, check it.
+	/* WideCharToMultiByte; */
+	short unsigned int destination[512];
+	int written_chars = MultiByteToWideChar(
+		CP_UTF8,
+		0,
+		WINTUN_COMPONENT_ID,
+		-1,
+		destination,
+		sizeof(destination));
+	DBG2(
+	    DBG_LIB, "Converting string from %s to %ls with MultiByteToWideChar wrote %d bytes,",
+	    WINTUN_COMPONENT_ID, destination, written_chars);
+	/* Make sure CompatIDsOffset indicates more than one HardwareID is in it
+	 * but also there actually is a hardware ID in the HardwareID field,
+	 * instead of just a \r(\n) (Windows DOES do that!) */
+	if (drv_info_detail_data->CompatIDsOffset > 1 &&
+		drv_info_detail_data->HardwareID &&
+		drv_info_detail_data->HardwareID[0] != '\r')
+	{
+		DBG2(DBG_LIB, "HardwareID: %hns",
+			drv_info_detail_data->HardwareID);
+		if (!strcmp(
+			drv_info_detail_data->HardwareID,
+			(char *) destination)) {
+			/* HardwareID matches */
+		    DBG2(DBG_LIB, "HardwareID %s matches %s",
+			    drv_info_detail_data->HardwareID,
+			    destination);
+		    return TRUE;
+		} else {
+		    DBG2(DBG_LIB, "HardwareID does not match");
+		    return FALSE;
+		}
+	}
+	// Iterate over HardwareID array in drv_info_detail_data
+	if(!(WINDOWS_IS_UNITIALIZED(drv_info_detail_data->CompatIDsOffset)) &&
+		drv_info_detail_data->CompatIDsLength > 0)
+	{	
+	    DBG2(DBG_LIB, "HardwareID: %hs", drv_info_detail_data->HardwareID);
+		/* compatIDs are in wide characters. Need to convert all fields into compatible */
+		if(find_matching_hardwareid(
+			drv_info_detail_data->HardwareID,
+			(char *) destination))
+		{
+		    return TRUE;		    
+		} else {
+		    DBG2(DBG_LIB, "ID %ls is not in compatible hardware IDs", destination);
+		    return FALSE;
+		}
+	}
+	return FALSE;
 }
 
 /* Described in header */
@@ -130,6 +303,7 @@ linked_list_t *string_array_to_linked_list(char *pile)
 	while(true)
 	{
 		item = windows_drv_info_get_next_hardwareid(pile, &offset);
+		DBG2(DBG_LIB, "Next Hardware ID: %s", item);
 		if (!item)
 		{
 			return list;

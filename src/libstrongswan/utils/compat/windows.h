@@ -276,6 +276,16 @@ char* dlerror(void);
 char *dlerror_mt(char *buf, size_t buf_len);
 
 /**
+ * function for translating the given error into a human readable error message
+ * using FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, ...)
+ * @param	buf	caller supplied buffer
+ * @param	erro	caller supplied erorr value to translate
+ * @param 	buf_len	length of caller supplied buffer
+ * @return             caller supplied buffer
+ */
+char *human_readable_error(char *buf, DWORD err, size_t buf_len);
+
+/**
  * dlclose() from <dlfcn.h>
  */
 int dlclose(void *handle);

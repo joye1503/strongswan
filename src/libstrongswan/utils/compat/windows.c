@@ -185,10 +185,19 @@ char* dlerror(void)
  */
 char *dlerror_mt(char *buf, size_t buf_len)
 {
-	char *pos;
-	DWORD err;
+	return human_readable_error(buf, GetLastError(), buf_len);
+}
 
-	err = GetLastError();
+/**
+ * 
+ * MT safe variant that only performs GetLastError() for the supplied
+ * variable in the system error message catalogue
+ * See header.
+ */
+char *human_readable_error(char *buf, DWORD err, size_t buf_len)
+{
+	char *pos;
+
 	if (FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
 					  NULL, err, 0, buf, buf_len, NULL) > 0)
 	{
@@ -204,6 +213,7 @@ char *dlerror_mt(char *buf, size_t buf_len)
 	}	
         return buf;
 }
+
 /**
  * See header.
  */

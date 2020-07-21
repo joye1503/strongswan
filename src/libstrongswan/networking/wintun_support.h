@@ -30,6 +30,7 @@ extern "C" {
 #        endif
 
 #include "windows_tun.h"
+#include <wchar.h>
 
 /* capacity must be a power of two and between 128 kiB and 64 MiB */
 #define IFNAMSIZ 256
@@ -43,6 +44,7 @@ extern "C" {
 #define STRONGSWAN_WINTUN_INTERFACE_NAME "strongSwan VPN adapter"
 /* Randomly generated, globally unique GUID for the strongSwan VPN adapter*/
 const static GUID GUID_WINTUN_STRONGSWAN = { 0x1f1f4dd1L, 0xe4d8, 0x487d, { 0xb7, 0xd5, 0x24, 0x93, 0xb2, 0xce, 0x0c, 0x49 } };
+const static char GUID_WINTUN_STRONGSWAN_STRING[] = "1f1f4dd1-e4d8-487d-b7d5-2493b2ce0c49";
 /* GUIDs from openvpn tun.c code */
 const static GUID GUID_DEVCLASS_NET = { 0x4d36e972L, 0xe325, 0x11ce, { 0xbf, 0xc1, 0x08, 0x00, 0x2b, 0xe1, 0x03, 0x18 } };
 #define TUN_IOCTL_REGISTER_RINGS 0xca6ce5c0

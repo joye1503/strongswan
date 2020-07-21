@@ -271,7 +271,7 @@ bool create_wintun(char *guid)
 {
 	/* Reimplementation of CreateInterface from wireguard */
 	char className[MAX_CLASS_NAME_LEN], buf[512],
-		*property_buffer = NULL, *NetCfgInstanceId[512], NetLuidIndex[512],
+		*property_buffer = NULL, NetCfgInstanceId[512], NetLuidIndex[512],
 		IfType[512], adapter_reg_key[512], ipconfig_value[512],
 		ipconfig_reg_key[512], *new_buf = NULL;
 	uint64_t index = 0;
@@ -280,8 +280,13 @@ bool create_wintun(char *guid)
 		NetCfgInstanceId_length = sizeof(NetCfgInstanceId),
 		NetLuidIndex_length = sizeof(NetLuidIndex),
 		IfType_length = sizeof(IfType),
-		ipconfig_value_length = sizeof(ipconfig_value);
-	FILETIME driver_date;
+		ipconfig_value_length = sizeof(ipconfig_value),
+		drv_info_detail_data_size = 0, ret;
+	FILETIME driver_date = {
+	    .dwHighDateTime = 0,
+	    .dwLowDateTime = 0
+	};
+	memset(NetCfgInstanceId, 0, sizeof(NetCfgInstanceId));
 	DWORDLONG driver_version = 0;
 	bool return_code = FALSE;
 	HKEY drv_reg_key = NULL, ipconfig_reg_hkey = NULL, adapter_reg_hkey = NULL;
@@ -297,7 +302,9 @@ bool create_wintun(char *guid)
 	SP_DEVINSTALL_PARAMS_A dev_install_params = {
 		.cbSize = sizeof(SP_DEVINSTALL_PARAMS_A)
 	};
-	SP_DRVINFO_DETAIL_DATA_A drv_info_detail_data;
+	SP_DRVINFO_DETAIL_DATA_A *drv_info_detail_data = malloc(sizeof(SP_DRVINFO_DETAIL_DATA_A));
+	drv_info_detail_data->cbSize = sizeof(SP_DRVINFO_DETAIL_DATA_A);
+	
 	/* is this optimizable? */
 	HDEVINFO dev_info_set = SetupDiCreateDeviceInfoListExA(
 		&GUID_DEVCLASS_NET,
@@ -333,11 +340,11 @@ bool create_wintun(char *guid)
 		goto delete_device_info_list;
 	}
 
-	if (required_length > sizeof(className))
+	if (required_length > property_buffer_length)
 	{
 		property_buffer = calloc(required_length, 1);
 		property_buffer_length = required_length;
-		if(!SetupDiClassNameFromGuidExA(
+		if (!SetupDiClassNameFromGuidExA(
 			&GUID_DEVCLASS_NET,
 			property_buffer,
 			property_buffer_length,
@@ -351,7 +358,7 @@ bool create_wintun(char *guid)
 			goto delete_device_info_list;
 		}
 	}
-
+	DBG0(DBG_LIB, "Got class name %s", property_buffer);
 	/* property_buffer now holds class name */
 	if (!SetupDiCreateDeviceInfo(
 		dev_info_set,
@@ -413,7 +420,7 @@ bool create_wintun(char *guid)
 	// loop over members of dev_info_data using EnumDriverInfo and index
 	// loop over devices, search for newest driver version
 
-	while(TRUE)
+	for(index=0;;index++)
 	{
 		if(!SetupDiEnumDriverInfo(
 			dev_info_set,
@@ -431,88 +438,60 @@ bool create_wintun(char *guid)
 			// Skip broken driver records
 			continue;
 		}
-		// DriverInfoDetail is SetupDiGetDriverInfoDetailA() that returns a struct of type SP_DRVINFO_DETAIL_DATA_A
-		if(!SetupDiGetDriverInfoDetailA(
+		DBG1(DBG_LIB, "driver description: %s", drv_info_data.Description);
+		DBG1(DBG_LIB, "driver MfgName: %s", drv_info_data.MfgName);
+		DBG1(DBG_LIB, "driver provider name: %s", drv_info_data.ProviderName);
+		if(CompareFileTime(&drv_info_data.DriverDate, &driver_date) == 1)
+		{
+		    /* Check if the device is compatible by checking the hardware IDs */
+		    required_length = 0;
+		    if(windows_get_driver_info_data_a(
 			dev_info_set,
 			&dev_info_data,
 			&drv_info_data,
 			&drv_info_detail_data,
-			sizeof(drv_info_detail_data),
+			&drv_info_detail_data_size,
 			&required_length
 			))
-		{
-			error = GetLastError();
-			if (error == ERROR_INSUFFICIENT_BUFFER)
-			{
-				// allocate memory
-				property_buffer = realloc(property_buffer, required_length);
-				property_buffer_length = required_length;
-				if(!SetupDiGetDriverInfoDetailA(
+		    {
+			if(check_hardwareids(drv_info_detail_data) ||
+				strcaseeq(drv_info_data.Description, "Wintun Userspace Tunnel")) {
+			    if(!SetupDiSetSelectedDriverA(dev_info_set, &dev_info_data, &drv_info_data))
+			    {
+				DBG1(DBG_LIB,
+				     "Failed to set driver of device %s for new wintun device: %s",
+				     windows_setupapi_get_friendly_name(
+					buf,
+					sizeof(buf),
 					dev_info_set,
-					&dev_info_data,
-					&drv_info_data,
-					&drv_info_detail_data,
-					sizeof(drv_info_detail_data),
-					&required_length
-				))
-				{
-					error = GetLastError();
-					if (error)
-					{
-						// previous returned length was bogus, something
-						// is fishy. Log error message and skip item.
-						DBG1(DBG_LIB, "Previous required length was bogus. New error is %s", dlerror_mt(buf, sizeof(buf)));
-						continue;
-					}
-				}
-			}
-			// other error occured. Log error and skip item.
-			DBG1(DBG_LIB, "A different error occured: %s", dlerror_mt(buf, sizeof(buf)));
-			continue;
-		}
-		// If the device does have a hardware ID, check it.
-		if (drv_info_detail_data.CompatIDsOffset > 1)
-		{
-			if (strcaseeq(drv_info_detail_data.HardwareID, WINTUN_COMPONENT_ID)) {
-				// hardware ID doesn't match
-				// check compatible hardware IDs
-				if(drv_info_detail_data.CompatIDsLength > 0 &&
-					!find_matching_hardwareid(drv_info_detail_data.HardwareID, WINTUN_COMPONENT_ID))
-				{
-					DBG2(DBG_LIB, "ID %s is not in compatible hardware IDs.", WINTUN_COMPONENT_ID);
-					continue;
-				}
-			}
-		}
-		// Iterate over HardwareID array in drv_info_detail_data
-		if (drv_info_detail_data.CompatIDsLength > 0)
-		{
-			if(!find_matching_hardwareid(drv_info_detail_data.HardwareID, WINTUN_COMPONENT_ID))
-			{
-				DBG2(DBG_LIB, "ID %s is not in compatible hardware IDs.", WINTUN_COMPONENT_ID);
+					&dev_info_data),
+				    dlerror_mt(
+					buf,
+					sizeof(buf))
+				);
 				continue;
+			    } else {
+				DBG1(DBG_LIB, "Set driver of device %s for new wintun device",
+				     windows_setupapi_get_friendly_name(
+					buf,
+					sizeof(buf),
+					dev_info_set,
+					&dev_info_data)
+					);
+			    }
+			    driver_version = drv_info_data.DriverVersion;
+			    driver_date = drv_info_data.DriverDate;
+			} else {
+			    DBG1(DBG_LIB, "No HardwareID match found");
 			}
-
+		    } else {
+			DBG1(DBG_LIB, "Failed to get driver info data");
+		    }
 		}
-
-		// device is compatible, store newest driver version and date
-		if(CompareFileTime(&drv_info_data.DriverDate, &driver_date) == 1)
-		{
-			if(!SetupDiSetSelectedDriverA(dev_info_set, &dev_info_data, &drv_info_data))
-			{
-				DBG1(DBG_LIB, "Failed to set driver of device %s for new wintun device %s",
-					dlerror_mt(buf, sizeof(buf)),
-					windows_setupapi_get_friendly_name(buf, sizeof(buf), dev_info_set, &dev_info_data));
-				continue;
-			}
-			driver_version = drv_info_data.DriverVersion;
-			driver_date = drv_info_data.DriverDate;
-		}
-		index++;
-        }
+	}
         if(driver_version == 0)
         {
-                DBG1(DBG_LIB, "No driver installed for device %s", dlerror_mt(buf, sizeof(buf)));
+                DBG1(DBG_LIB, "No driver installed for device: %s", dlerror_mt(buf, sizeof(buf)));
                 goto delete_driver_info_list;
         }
 
@@ -529,23 +508,53 @@ bool create_wintun(char *guid)
 
         for (int i=0;i<200;i++)
         {
-                drv_reg_key = SetupDiOpenDevRegKey(dev_info_set, &dev_info_data, DICS_FLAG_GLOBAL, 0, DIREG_DRV, KEY_SET_VALUE | KEY_QUERY_VALUE | KEY_NOTIFY);
-                if (drv_reg_key)
+                if ((drv_reg_key = SetupDiOpenDevRegKey(
+			dev_info_set,
+			&dev_info_data,
+			DICS_FLAG_GLOBAL,
+			0,
+			DIREG_DRV,
+			KEY_SET_VALUE | KEY_QUERY_VALUE | KEY_NOTIFY
+			)))
                 {
-                        /* Got registry key */
-                        break;
-                }
-                /* Make sure the thread sleeps at least 50 ms */
-                while(!nanosleep(&ts, &ts))
-                {}
-        }
-        guid2string(property_buffer, property_buffer_length, (GUID *) &GUID_WINTUN_STRONGSWAN);
-        snprintf(buf, sizeof(buf), "{%s}", property_buffer);
-        if (!RegSetKeyValueA(drv_reg_key, NULL, "NetSetupAnticipatedInstanceId", REG_SZ, buf, strlen(buf)))
+		    DBG1(DBG_LIB, "Successfully opened registry key");
+                    /* Got registry key */
+		    break;
+                } else {
+		    DBG1(DBG_LIB, "Failed to open registry key");
+		    /* Make sure the thread sleeps at least 50 ms */
+		    ts = (struct timespec) {
+			.tv_sec = 0,
+			.tv_nsec = 50000000,
+		    };
+		    while (nanosleep(&ts, &ts)){}	 
+		    drv_reg_key = NULL;
+		}
+	}
+	if(!handle_is_valid(drv_reg_key))
+	{
+	    DBG0(DBG_LIB, "Failed to open DevRegKey");
+	    goto delete_driver_info_list;
+	}
+	// Need to encode this in UTF-16 first(!)
+	LPWSTR temp_buf = NULL;
+	
+	if(!ascii2utf16(&temp_buf, 0, GUID_WINTUN_STRONGSWAN_STRING, -1))
+	{
+	    DBG1(DBG_LIB, "Failed to convert string, aborting.");
+	    goto delete_driver_info_list;
+	}
+	DBG1(DBG_LIB, "Value of HKEY drv_reg_key 1: %ld", (long long) drv_reg_key);
+        if ((ret=RegSetKeyValueA(drv_reg_key, NULL, "NetSetupAnticipatedInstanceId", REG_SZ, temp_buf, wcslen(temp_buf)+1)) != ERROR_SUCCESS)
         {
-                DBG1(DBG_LIB, "Failed to set regkey NetSetupAnticipatedInstanceId (RegSetKeyValueA): %s", dlerror_mt(buf, sizeof(buf)));
-                goto close_reg_keys;
+                DBG1(DBG_LIB,
+			"Failed to set regkey NetSetupAnticipatedInstanceId (RegSetKeyValueA): (decimal %u) %s",
+			ret,
+			human_readable_error(buf, ret, sizeof(buf)));
         }
+	DBG1(DBG_LIB, "Value of HKEY drv_reg_key 2: %ld", (long long) drv_reg_key);	
+	free(temp_buf);
+	
         SetupDiCallClassInstaller(
                 DIF_INSTALLINTERFACES,
                 dev_info_set,
@@ -585,12 +594,25 @@ bool create_wintun(char *guid)
                 DBG1(DBG_LIB, "Failed to get device description (SetupDiSetDeviceRegistryPropertyA(SPDRP_DEVICEDESC)) failed: %s", dlerror_mt(buf, sizeof(buf)));
                 goto close_reg_keys;
         }
+	if(handle_is_valid(drv_reg_key))
+	{
+	    RegCloseKey(drv_reg_key);
+	}
+	
+	drv_reg_key = SetupDiOpenDevRegKey(
+		dev_info_set,
+		&dev_info_data,
+		DICS_FLAG_GLOBAL,
+		0,
+		DIREG_DRV, KEY_SET_VALUE | KEY_QUERY_VALUE | KEY_NOTIFY
+	);
 
         if (!registry_wait_get_value(drv_reg_key, NetCfgInstanceId, (DWORD *) &NetCfgInstanceId_length, "NetCfgInstanceId", &reg_value_type, registry_timeout))
         {
                 DBG1(DBG_LIB, "Failed to retrieve NetCfgInstanceId key. Aborting tun device installation.");
                 goto close_reg_keys;
         }
+	DBG2(DBG_LIB, "NetCfgInstanceId type is %d with value: %s", reg_value_type, NetCfgInstanceId);
         if (!(reg_value_type &= (REG_SZ | REG_EXPAND_SZ | REG_MULTI_SZ)))
         {
                 DBG1(DBG_LIB, "Type of NetCfgInstanceId is not REG_SZ, REG_EXPAND_SZ or REG_MULTI_SZ (Meaning it is not a string). Aborting tun device install.");
@@ -623,7 +645,7 @@ bool create_wintun(char *guid)
         }
 	/* tcpipAdapterRegKeyName */
 	ignore_result(snprintf(adapter_reg_key, sizeof(adapter_reg_key),
-		"SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters\\Adapters\\%u",
+		"SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters\\Adapters\\%s",
 		NetCfgInstanceId));
 	
         // Wait for TCP/IP adapter registry key to emerge and populate.
@@ -642,9 +664,12 @@ bool create_wintun(char *guid)
 		goto close_reg_keys;
 	}
 	
-	if (reg_value_type &= (REG_SZ | REG_EXPAND_SZ | REG_MULTI_SZ))
+	if (!(reg_value_type &= (REG_SZ | REG_EXPAND_SZ | REG_MULTI_SZ)))
 	{
-		DBG1(DBG_LIB, "Invalid type for key %s\\%s", adapter_reg_key, "IpConfig");
+		DBG1(DBG_LIB, "Invalid type %u for key %s\\%s",
+			reg_value_type,
+			adapter_reg_key,
+			"IpConfig");
 		goto close_reg_keys;
 	}
 	
@@ -654,15 +679,19 @@ bool create_wintun(char *guid)
 	
 	if(!(ipconfig_reg_hkey = registry_open_wait(HKEY_LOCAL_MACHINE, ipconfig_reg_key, 0, registry_timeout)))
 	{
-		DBG1(DBG_LIB, "Timeout while waiting for key %s", ipconfig_reg_key);
+		DBG1(DBG_LIB, "Timeout while waiting for key %s to be accessible", ipconfig_reg_key);
 		goto close_reg_keys;
 	}
 	
 	/* EnableDeadGWDetect */
 	RegSetValueExA(ipconfig_reg_hkey, "EnableDeadGWDetect", 0, REG_DWORD, 0, sizeof(0));
 	
-
+	return_code = true;
 close_reg_keys :
+	if(handle_is_valid(drv_reg_key))
+	{
+	    RegCloseKey(drv_reg_key);
+	}
 	if(ipconfig_reg_hkey)
 	{
 		RegCloseKey(ipconfig_reg_hkey);
@@ -671,7 +700,6 @@ close_reg_keys :
 	{
 		RegCloseKey(adapter_reg_hkey);
 	}
-	RegCloseKey(drv_reg_key);
 
 delete_driver_info_list : ;
         if (!return_code)
@@ -896,9 +924,10 @@ delete_device_info_list:
 
 char *search_interfaces(GUID *GUID)
 {
-	char guid_string[37];
-	guid2string(guid_string, sizeof(guid_string), GUID);
+	char guid_string[40];
+	guid2string(guid_string, sizeof(guid_string), GUID, TRUE);
         char *interfaces = NULL;
+	DBG0(DBG_LIB, "Guid2string: %s", guid_string);
         ULONG required_chars = 0;
         CONFIGRET ret;
         for(int tries=0;tries<50;tries++)
@@ -943,12 +972,13 @@ char *search_interfaces(GUID *GUID)
 
 bool configure_wintun(private_windows_wintun_device_t *this, const char *name_tmpl)
 {
-	char buf[512], *interfaces;
+	char buf[512], *interfaces, guid_string[512];
 	for(int i;i<2;i++) {
 	    interfaces = search_interfaces((GUID *) &GUID_WINTUN_STRONGSWAN);
 	    if(!interfaces)
 	    {
-		if (!create_wintun(NULL))
+		DBG1(DBG_LIB, "No strongSwan VPN interface found, creating one.");
+		if (!create_wintun(guid_string))
 		{
 		    DBG0(DBG_LIB, "Failed to create new wintun device");
 		    return FALSE;
@@ -997,7 +1027,7 @@ bool configure_wintun(private_windows_wintun_device_t *this, const char *name_tm
 	memwipe(this->rings->Receive.Ring, sizeof(TUN_RING));
 
         /* Tell driver about the rings */
-        DeviceIoControl(this->tun_handle,
+        if(!DeviceIoControl(this->tun_handle,
             TUN_IOCTL_REGISTER_RINGS,
             &this->rings->Receive,
             TUN_RING_SIZE(this->rings->Receive, TUN_RING_CAPACITY),
@@ -1005,7 +1035,13 @@ bool configure_wintun(private_windows_wintun_device_t *this, const char *name_tm
             TUN_RING_SIZE(this->rings->Send, TUN_RING_CAPACITY),
             NULL,
             NULL
-        );
+        )) {
+	    DBG0(DBG_LIB, "failed to install rings");
+	    free(this->rings->Send.Ring);
+	    free(this->rings->Receive.Ring);
+	    free(this->rings);
+	    return FALSE;
+	}
 	return TRUE;
 }
 

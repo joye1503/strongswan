@@ -17,22 +17,39 @@
 /**
  * See header
  */
-bool guid2string(char *dst, size_t dst_len, GUID *guid)
+bool guid2string(char *dst, size_t dst_len, const GUID *guid, bool braces)
 {
 	size_t ret = 0;
-	if(dst_len <= 37)
+	char *with_braces = "{%08lx-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x}",
+		*without_braces = "%08lx-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x";
+	if (braces)
 	{
+	    if (dst_len >= 39 )
+	    {
 		ret = snprintf(dst, dst_len,
-			"%08lx-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x",
+			with_braces,
 			guid->Data1, guid->Data2, guid->Data3,	
 			guid->Data4[0], guid->Data4[1], guid->Data4[2], guid->Data4[3],
-			guid->Data4[4], guid->Data4[5], guid->Data4[6], guid->Data4[7]);
-
+			guid->Data4[4], guid->Data4[5], guid->Data4[6], guid->Data4[7]);		    
+	    } else {
+		DBG0(DBG_LIB, "Buffer too small!");
+	    }
+	} else {
+	    if (dst_len >= 37)
+	    {
+		ret = snprintf(dst, dst_len,
+		    without_braces,
+		    guid->Data1, guid->Data2, guid->Data3,	
+		    guid->Data4[0], guid->Data4[1], guid->Data4[2], guid->Data4[3],
+		    guid->Data4[4], guid->Data4[5], guid->Data4[6], guid->Data4[7]);
+	    } else {
+		DBG0(DBG_LIB, "Buffer too small!");
+	    }
 	}
-	return ret == 37 ? TRUE : FALSE;
+	return ret >= 36 ? TRUE : FALSE;
 }
 
-bool guidfromstring(GUID *guid, char *str)
+bool guidfromstring(GUID *guid, const char *str)
 {
     size_t read = scanf("%08lx-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x",
                         guid->Data1, guid->Data2, guid->Data3,	
@@ -71,27 +88,27 @@ bool registry_wait_get_value(HKEY key, void *caller_buf, DWORD *caller_buf_len,
 	{
 		/* Try to get value */
 		function_ret_query = RegQueryValueExA(key, reg_val_name, NULL, reg_val_type, caller_buf, (LPDWORD) caller_buf_len);
+		time_monotonic(&now);
+		int64_t ms_to_deadline = (deadline.tv_sec - now.tv_sec) * 1000 + (deadline.tv_usec - now.tv_usec);
 		switch(function_ret_query)
 		{
 			case ERROR_FILE_NOT_FOUND:
 			case ERROR_PATH_NOT_FOUND:
-				time_monotonic(&now);
 				/* All vars in this calculation are signed, so no issues
 				 * until the first part overflows (certainly farther in the future than this code will run)
 				 */
-				int64_t ms_to_deadline = (deadline.tv_sec - now.tv_sec) * 1000 + (deadline.tv_usec - now.tv_usec);
 				if (ms_to_deadline <= 0)
 				{
 					DBG1(DBG_LIB, "Timed out waiting for registry value %s", reg_val_name);
-					break;
+					goto out;
 					break;
 				}
 				/* Set up handle for notify */
-				if (!RegNotifyChangeKeyValue(key, FALSE, REG_NOTIFY_CHANGE_LAST_SET, handle, true))
+				if (RegNotifyChangeKeyValue(key, FALSE, REG_NOTIFY_CHANGE_LAST_SET, handle, true) != ERROR_SUCCESS)
 				{
 					dlerror_mt(buf, sizeof(buf));
 					DBG1(DBG_LIB, "Failed to call RegNotifyChangeKeyValue: %s", buf);
-					break;
+					goto out;
 					break;
 				}
 				function_ret_wait = WaitForSingleObjectEx(handle, ms_to_deadline, FALSE);
@@ -99,29 +116,31 @@ bool registry_wait_get_value(HKEY key, void *caller_buf, DWORD *caller_buf_len,
 				{
 					dlerror_mt(buf, sizeof(buf));
 					DBG1(DBG_LIB, "Failed to wait for event (WaitForSingleObjectEx(): %ld): %s", function_ret_wait, buf);
-					break;
+					goto out;
 					break;
 				}
 				break;
 			case ERROR_MORE_DATA:
 				caller_buf = realloc(caller_buf, *caller_buf_len);
 				break;
+			case ERROR_SUCCESS:
 			case TRUE:
 				/* succeeded */
 				own_ret = TRUE;
+				goto out;
 				break;
+			case ERROR_INVALID_HANDLE:
+			        DBG1(DBG_LIB, "Invalid handle. Failed to read string.");
+				goto out;
 				break;
 			default:
 				dlerror_mt(buf, sizeof(buf));
 				DBG1(DBG_LIB, "Failed to read registry value (RegQueryValueExA): %s", buf);
-				break;
+				goto out;
 				break;
 		}
 	}
-	if(caller_buf)
-	{
-		free(caller_buf);
-	}
+	out:
 	CloseHandle(handle);
 	return own_ret;
 }
@@ -156,13 +175,16 @@ HKEY registry_open_wait(HKEY key, char *path, DWORD access, size_t timeout)
 {
 	/* timeout is in ms */
 	HKEY intermediate = NULL;
-	char buf[512];
+	size_t path_len = strlen(path) + 1, ret;
+	char buf[512], *str = path, *tok, *current_path = alloca(path_len),
+		*current_path_cpy = alloca(path_len), *last_part;
+	bool first = TRUE;
 	timeval_t now, deadline;
 	DWORD function_ret_wait;
-	char *str = path, *tok, *current_path = NULL, *last_part;
 	/* Number of iterations */
-	size_t cnt = 0, current_path_len = 0, old_path_len = 0, tok_len;
-	linked_list_t *tokens = strsplit(path, "\\");
+
+	// linked_list_t *tokens = strsplit_race(path, "\\");
+	linked_list_t *tokens = strsplit(path, "\\,");
 	tokens->get_last(tokens, (void **) &last_part);
 	enumerator_t *enumerator = tokens->create_enumerator(tokens);
 	HANDLE handle = CreateEventA(
@@ -178,48 +200,43 @@ HKEY registry_open_wait(HKEY key, char *path, DWORD access, size_t timeout)
 		dlerror_mt(buf, sizeof(buf));
 		DBG1(DBG_LIB, "Failed to create handle: %s", buf);
 		return FALSE;
-	}	
+	}
 
 	/* Get current time, add timeout */
 	time_monotonic(&deadline);
 	timeval_add_ms(&deadline, timeout);	
+	
+	
 	/* In the loop, we check if each key occuring in the path is accessible.
 	 * If a key is not, it will be created by the installation routine
 	 * that was called before this function.
 	 * This means that we instead wait for an event in the registry in
 	 * which the key was created.
-	 * This function is written under the presumption that the large
-	 * majority of the path is accessible already
-	 * and thus the contents of the switch case for 
-	 * RROR_PATH_NOT_FOUND and ERROR_FILE_NOT_FOUND are only called
-	 * seldomly. It was written with saving syscalls in mind.
 	 */
 	while (enumerator->enumerate(enumerator, &tok))
 	{
 		if (tok)
 		{
-			/* 
-			 * FIXME: Need to proactively check if this is the final
-			 * path name so we can use a different access rights
-			 * bitmask instead of NOTIFY
-			 */
-			old_path_len = current_path_len;
-			tok_len = strlen(tok);
-			str += tok_len + 1;
-			current_path_len += tok_len + 1;
-			current_path = realloc(current_path, current_path_len+1);
+			if (first)
+			{
+			    memcpy(current_path, tok, strlen(tok)+1);
+			    first = FALSE;
+			} else {
+			    memcpy(current_path_cpy, current_path, path_len);
+			    snprintf(current_path, path_len, "%s\\%s", current_path_cpy, tok);			
+			}
 			/* Add the new token to the path*/
-			strncat(current_path+old_path_len, tok, tok_len-1);
 			/* Check if the current path is accessible */
 			if (last_part == tok)
 			{
 				access = KEY_NOTIFY;
 			}
 			
-			switch(RegOpenKeyA(key, current_path, &intermediate))
+			switch((ret=RegOpenKeyA(key, current_path, &intermediate)))
 			{
+				case true:
 				case ERROR_SUCCESS:
-				break;
+				    break;
 				case ERROR_FILE_NOT_FOUND:
 				case ERROR_PATH_NOT_FOUND:
 					time_monotonic(&now);
@@ -241,8 +258,9 @@ HKEY registry_open_wait(HKEY key, char *path, DWORD access, size_t timeout)
 						goto cleanup;
 					}
 					/* Check if we can access the key */
-					switch(RegOpenKeyExA(key, current_path, 0, access, &intermediate))
+					switch((ret=RegOpenKeyExA(key, current_path, 0, access, &intermediate)))
 					{
+						case true:
 						case ERROR_SUCCESS:
 							/* Close the notifier handle again and open a new one, just in case the kernel handles reusing of active handles badly.*/
 							CloseHandle(handle);
@@ -252,12 +270,11 @@ HKEY registry_open_wait(HKEY key, char *path, DWORD access, size_t timeout)
 								FALSE,
 								NULL
 							);
-
+							
 							if (!handle)
 							{
 								dlerror_mt(buf, sizeof(buf));
 								DBG1(DBG_LIB, "Failed to create handle: %s", buf);
-								goto cleanup;
 							}
 							break;
 						case ERROR_FILE_NOT_FOUND:
@@ -282,33 +299,28 @@ HKEY registry_open_wait(HKEY key, char *path, DWORD access, size_t timeout)
 							break;
 						default:
 							dlerror_mt(buf, sizeof(buf));
-							DBG1(DBG_LIB, "Failed to open registry value (RegOpenKeyEx): %s", buf);
+							DBG1(DBG_LIB, "Failed to open registry value (RegOpenKeyEx): (decimal %u) %s", ret, buf);
 							goto cleanup;
 							break;
 					}
 					break;
 				default:
 					dlerror_mt(buf, sizeof(buf));
-					DBG1(DBG_LIB, "Failed to open registry key %s (RegOpenKeyA): %s", current_path, buf);
+					DBG1(DBG_LIB, "Failed to open registry key %s (RegOpenKeyA): (decimal %u) %s", current_path, ret, buf);
 					goto cleanup;
 					break;
 			}
 		}
-		cnt++;
 	}
 
 cleanup: ;
 	tokens->reset_enumerator(tokens, enumerator);
-	while(enumerator->enumerate(enumerator, str))
+	while(enumerator->enumerate(enumerator, &str))
 	{
-		free(str);
+	    free(str);
 	}
 	enumerator->destroy(enumerator);
 	tokens->destroy(tokens);
-	if(current_path)
-	{
-		free(current_path);
-	}
 	CloseHandle(handle);
 	return intermediate;
 }
@@ -320,4 +332,50 @@ bool check_reboot(HDEVINFO dev_info_set, SP_DEVINFO_DATA *dev_info_data)
 	};
 	bool ret = SetupDiGetDeviceInstallParamsA(dev_info_set, dev_info_data, &dev_install_params);
 	return dev_install_params.Flags & (DI_NEEDREBOOT | DI_NEEDRESTART) & ret;
+}
+
+/**
+ * If dst_len is 0, the buffer is allocated on the heap using malloc()
+ * @param dst
+ * @param dst_len
+ * @param str
+ * @param str_len
+ * @return 
+ */
+int ascii2utf16(LPWSTR *dst, size_t dst_len, const char *str, const size_t str_len)
+{
+    int ret = dst_len;
+    for(int i=0;i<2;i++)
+    {
+	ret = MultiByteToWideChar(
+		CP_ACP,
+		0,
+		str,
+		str_len,
+		*dst,
+		ret
+		);
+	if(!ret)
+	{
+	    char buf[512];
+	    DBG1(DBG_LIB, "Failed to convert string (ascii2utf) with dst %p, dst_len %u, str %p and str_Len %u: %u",
+		    dst, dst_len, str, str_len, dlerror_mt(buf, sizeof(buf)));
+	    return 0;
+	}
+	*dst = malloc(ret);
+	if(!(*dst))
+	{
+	    DBG1(DBG_LIB, "Failed to convert string (ascii2utf) with dst %p, dst_len %u, str %p and str_Len %u because the required memory of %u byte could not be allocated.",
+		    dst, dst_len, str, str_len, ret);
+	    return 0;
+	}
+    }
+    return ret;
+}
+/**
+ * See header.
+ */
+bool handle_is_valid(HKEY handle)
+{
+    return (handle != NULL && (long long) handle > 1);
 }

@@ -20,7 +20,9 @@
 #include <synchapi.h>
 
 #include <library.h>
+#define WINDOWS_UNITIALIZED 3131961357
 
+#define WINDOWS_IS_UNITIALIZED(x) (x == WINDOWS_UNITIALIZED)
 /**
  * helper function for writing guids into character buffers
  * Thread safe and safe for calling several times.
@@ -28,18 +30,19 @@
  * @param		dst 	destination buffer for GUID. Has to be at least 37 characters in length.
  * @param		dst_len	length of destination buffer
  * @param		GUID 	GUID to transform into a string
- * @return				Boolean indicating success (buffer long enough) or failure (buffer too short)
+ * @param		braces	print with curly braces or without curly braces
+ * @return		        Boolean indicating success (buffer long enough) or failure (buffer too short)
  */
-bool guid2string(char *dst, size_t dst_len, GUID *guid);
+bool guid2string(char *dst, size_t dst_len, const GUID *guid, bool braces);
 
 /**
  * helper function for reading GUIDs in string form (without the {}) into a GUID type structure.
  * Thread safe and safe for calling several times.
  * @param               guid    allocated GUID type structure, will receive the data from the GUID
  * @param               str     source string to read into the GUID type structure
- * @return                      Boolean indicating success or failure (string too short or not a valid GUID)
+ * @return			 Boolean indicating success or failure (string too short or not a valid GUID)
  */
-bool guidfromstring(GUID *guid, char *str);
+bool guidfromstring(GUID *guid, const char *str);
 
 /**
  * helper function for getting registry values that may not exist yet
@@ -51,8 +54,8 @@ bool guidfromstring(GUID *guid, char *str);
  							If the function returns FALSE, the content of caller_buf_len is undefined.
  * @param	reg_val_name	name of the value to query
  * @param	reg_val_type	Will contain the registry type of the value (MULTI_SZ, EXPAND_SZ, ...)
- * @param	timeout			time (in ms) to wait for the registry key to appear
- * @return					TRUE if querying succeeded, FALSE if not
+ * @param	timeout		time (in ms) to wait for the registry key to appear
+ * @return			TRUE if querying succeeded, FALSE if not
  */
 bool registry_wait_get_value(HKEY key, void *caller_buf, DWORD *caller_buf_len, char *reg_val_name, DWORD *reg_val_type,
 			size_t timeout);
@@ -84,4 +87,21 @@ char *windows_expand_string(char *buf, DWORD *buf_len, size_t *new_buf_len);
  * @return                      State whether a reboot is required or not.
  */
 bool check_reboot(HDEVINFO dev_info_set, SP_DEVINFO_DATA *dev_info_data);
+
+/**
+ * Helper function for converting ASCII to UTF-16.
+ * @param dst		    pointer to the destination buffer, does not need to be allocated.
+ * @param dst_len	    length of the destination buffer, if it is preallocated. If it is not allocated, 0 has to be passed.
+ * @param str		    ASCII string to be converted
+ * @param str_len	    Length of the ASCII string, if it is not zero/NULL byte terminated. If it is zero/NULl byte terminated, pass -1.
+ * @return 
+ */
+int ascii2utf16(LPWSTR *dst, size_t dst_len, const char *str, const size_t str_len);
+
+/**
+ * Helper function to check if a handle has an actually valid value
+ * @param handle	Handle to check
+ * @return		Bool indicating whether the handle could possibly be valid
+ */
+bool handle_is_valid(HKEY handle);
 #endif
