@@ -166,6 +166,12 @@ enum ike_extension_t {
 	 * Responder accepts childless IKE_SAs, RFC 6023
 	 */
 	EXT_IKE_CHILDLESS = (1<<16),
+
+	/**
+	 * CISCO FlexVPN supported
+	 */
+
+	EXT_CISCO_FLEXVPN = (1<<17),
 };
 
 /**
