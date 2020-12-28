@@ -50,6 +50,14 @@ matrix:
     - compiler: gcc
       env: TEST=dist
     - compiler: gcc
+      arch: arm64
+      env: TEST=dist
+    - compiler: gcc
+      arch: arm64-graviton2
+      virt: lxd
+      group: edge
+      env: TEST=dist
+    - compiler: gcc
       env: TEST=apidoc
     - compiler: gcc
       env: TEST=coverage
